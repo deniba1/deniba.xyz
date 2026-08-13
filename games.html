@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Deni's Arcade</title>
+<title>el secret arcade</title>
 <style>
 :root{--bg:#080809;--panel:#101012;--line:#29292d;--text:#eeeef0;--muted:#77777d;--accent:#b7ff75}
 *{box-sizing:border-box}
@@ -91,7 +91,7 @@ for(const p of pipes){if(!p.passed&&p.x+7<bird.x){p.passed=true;scoreSet(score+1
 if(bird.x+3>p.x&&bird.x-3<p.x+8&&(bird.y-3<p.gy||bird.y+3>p.gy+p.gap))gameOver()}
 if(bird.y<2||bird.y>94)gameOver()
 }
-function flap(){if(!running){start();return}bird.vy=-.28}
+function flap(){if(!running){start();return}bird.vy=-.16}
 function flappyDraw(){clear();x.fillStyle='#b7ff75';x.fillRect(bird.x-3,bird.y-3,7,7);x.fillStyle='#eeeef0';pipes.forEach(p=>{x.fillRect(p.x,0,8,p.gy);x.fillRect(p.x,p.gy+p.gap,8,96)})}
 
 let ball,paddle1,paddle2,serve;
@@ -109,7 +109,7 @@ if(ball.x>128){scoreSet(score+1);ball={x:64,y:48,vx:-.16,vy:(Math.random()-.5)*.
 function pongDraw(){clear();x.fillStyle='#eeeef0';x.fillRect(4,paddle1,3,12);x.fillRect(121,paddle2,3,12);x.fillRect(ball.x-2,ball.y-2,4,4);for(let y=2;y<96;y+=8)x.fillRect(63,y,2,4)}
 
 let px,bricks,bb;
-function breakInit(){px=56;bricks=[];bb={x:64,y:78,vx:.16,vy:-.18};for(let r=0;r<4;r++)for(let col=0;col<12;col++)bricks.push({x:8+col*10,y:8+r*7,on:true})}
+function breakInit(){px=56;bricks=[];bb={x:64,y:78,vx:.095,vy:-.105};for(let r=0;r<4;r++)for(let col=0;col<12;col++)bricks.push({x:8+col*10,y:8+r*7,on:true})}
 function breakUpdate(dt){
 px+=(keys.a?-0.22:0)*dt+(keys.d?.22:0)*dt;px=Math.max(8,Math.min(104,px));bb.x+=bb.vx*dt;bb.y+=bb.vy*dt;
 if(bb.x<2||bb.x>126){bb.vx*=-1;bb.x=Math.max(2,Math.min(126,bb.x))}
@@ -126,6 +126,7 @@ document.addEventListener('keydown',e=>{
 keys[e.key.toLowerCase()]=true;
 if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();
 if(e.key===' '){if(game==='flappy')flap();else if(!running)start()}
+if(game==='flappy' && (e.key==='ArrowUp'||e.key.toLowerCase()==='w')){flap();return}
 if(game==='snake'){if(e.key==='ArrowUp'||e.key.toLowerCase()==='w')setDir(0,-1);if(e.key==='ArrowDown'||e.key.toLowerCase()==='s')setDir(0,1);if(e.key==='ArrowLeft'||e.key.toLowerCase()==='a')setDir(-1,0);if(e.key==='ArrowRight'||e.key.toLowerCase()==='d')setDir(1,0)}
 });
 document.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
