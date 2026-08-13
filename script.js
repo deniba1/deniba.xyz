@@ -1,32 +1,54 @@
-{`const card = document.getElementById("card");
+const card = document.getElementById("profile");
 const play = document.getElementById("play");
+const equalizer = document.getElementById("equalizer");
 
-document.addEventListener("mousemove", (e) => {
-  const x = e.clientX / window.innerWidth - 0.5;
-  const y = e.clientY / window.innerHeight - 0.5;
+let playing = true;
 
-  card.style.transform =
-    \`rotateY(\${x * 5}deg) rotateX(\${-y * 5}deg)\`;
+// Subtle 3D movement following the mouse
+window.addEventListener("mousemove", (event) => {
+  if (window.innerWidth < 700) return;
+
+  const x = event.clientX / window.innerWidth - 0.5;
+  const y = event.clientY / window.innerHeight - 0.5;
+
+  card.style.transform = `
+    perspective(1100px)
+    rotateX(${y * -2.2}deg)
+    rotateY(${x * 2.2}deg)
+    translateY(-2px)
+  `;
 });
 
-document.addEventListener("mouseleave", () => {
-  card.style.transform = "rotateY(0) rotateX(0)";
+// Reset card when mouse leaves the window
+window.addEventListener("mouseleave", () => {
+  card.style.transform = "";
 });
 
-let playing = false;
-
+// Music button
 play.addEventListener("click", () => {
   playing = !playing;
-  play.textContent = playing ? "❚❚" : "▶";
+
+  play.textContent = playing ? "▶" : "Ⅱ";
+  equalizer.classList.toggle("paused", !playing);
 });
 
-// Fake local view counter
-const count = document.getElementById("viewCount");
-let views = Number(count.textContent.replace(",", ""));
-
-setInterval(() => {
-  if (Math.random() > 0.7) {
-    views++;
-    count.textContent = views.toLocaleString();
-  }
-}, 5000);`}
+// Entrance animation
+window.addEventListener("load", () => {
+  card.animate(
+    [
+      {
+        opacity: 0,
+        transform: "translateY(12px) scale(.985)"
+      },
+      {
+        opacity: 1,
+        transform: "translateY(0) scale(1)"
+      }
+    ],
+    {
+      duration: 600,
+      easing: "cubic-bezier(.2,.8,.2,1)",
+      fill: "forwards"
+    }
+  );
+});
