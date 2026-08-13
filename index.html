@@ -1,191 +1,76 @@
-<!DOCTYPE html>
+{`<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="A modern portfolio showcasing creative work, projects, skills, and experience." />
-  <title>Your Name — Portfolio</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Personal profile">
+  <title>username</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-  <div class="noise"></div>
 
-  <header class="nav-wrap">
-    <nav class="nav container">
-      <a class="logo" href="#top">YN<span>.</span></a>
-      <div class="nav-links">
-        <a href="#work">Work</a>
-        <a href="#about">About</a>
-        <a href="#contact">Contact</a>
+  <div class="background">
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+    <div class="orb orb3"></div>
+    <div class="grid"></div>
+  </div>
+
+  <main class="profile-card" id="card">
+
+    <img class="avatar"
+         src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400"
+         alt="avatar">
+
+    <h1>username</h1>
+    <p class="handle">@username</p>
+
+    <p class="bio">
+      building cool stuff and wasting way too much time online.
+    </p>
+
+    <div class="socials">
+      <a href="#" title="Discord">discord</a>
+      <a href="#" title="GitHub">github</a>
+      <a href="#" title="Instagram">instagram</a>
+    </div>
+
+    <div class="status">
+      <span class="online"></span>
+      <div>
+        <strong>Online</strong>
+        <small>probably coding something</small>
       </div>
-      <a class="nav-cta" href="#contact">Let's talk <span>↗</span></a>
-    </nav>
-  </header>
+    </div>
 
-  <main id="top">
-    <section class="hero container">
-      <div class="hero-copy">
-        <div class="eyebrow"><span class="status-dot"></span> Available for opportunities</div>
-        <h1>Building things<br><em>worth remembering.</em></h1>
-        <p class="hero-text">
-          I'm a creative problem-solver focused on thoughtful design, technology,
-          and projects that turn good ideas into something real.
-        </p>
-        <div class="hero-actions">
-          <a class="button primary" href="#work">Explore my work <span>↘</span></a>
-          <a class="button ghost" href="#contact">Get in touch</a>
-        </div>
-      </div>
+    <div class="music">
+      <button id="play">▶</button>
 
-      <div class="hero-art">
-        <div class="orb orb-a"></div>
-        <div class="orb orb-b"></div>
-        <div class="grid-card">
-          <span class="grid-label">CREATIVE / TECH</span>
-          <div class="grid-cross">+</div>
-          <div class="grid-number">01</div>
-        </div>
-      </div>
-    </section>
-
-    <section class="ticker">
-      <div class="ticker-track">
-        <span>DESIGN</span><b>✦</b><span>DEVELOPMENT</span><b>✦</b>
-        <span>CREATIVE THINKING</span><b>✦</b><span>PROBLEM SOLVING</span><b>✦</b>
-        <span>DESIGN</span><b>✦</b><span>DEVELOPMENT</span><b>✦</b>
-      </div>
-    </section>
-
-    <section id="work" class="section container">
-      <div class="section-heading">
-        <div>
-          <span class="section-kicker">SELECTED WORK</span>
-          <h2>Projects with<br><span>purpose.</span></h2>
-        </div>
-        <p>Things I've built, designed, researched, and experimented with.</p>
+      <div class="track">
+        <strong>song title</strong>
+        <span>artist name</span>
       </div>
 
-      <div class="project-grid">
-        <article class="project project-large">
-          <div class="project-visual visual-one">
-            <span class="project-tag">01 / FEATURED</span>
-            <div class="visual-shape"></div>
-            <div class="visual-title">PROJECT<br>ONE</div>
-          </div>
-          <div class="project-info">
-            <div>
-              <h3>Project One</h3>
-              <p>A polished digital experience built around a simple idea.</p>
-            </div>
-            <span class="arrow">↗</span>
-          </div>
-        </article>
-
-        <article class="project">
-          <div class="project-visual visual-two">
-            <span class="project-tag">02 / WEB</span>
-            <div class="mini-cards"><i></i><i></i><i></i></div>
-          </div>
-          <div class="project-info">
-            <div>
-              <h3>Project Two</h3>
-              <p>Modern interface and responsive development.</p>
-            </div>
-            <span class="arrow">↗</span>
-          </div>
-        </article>
-
-        <article class="project">
-          <div class="project-visual visual-three">
-            <span class="project-tag">03 / CONCEPT</span>
-            <div class="ring"></div>
-            <div class="ring ring-small"></div>
-          </div>
-          <div class="project-info">
-            <div>
-              <h3>Project Three</h3>
-              <p>An experiment exploring visual systems and interaction.</p>
-            </div>
-            <span class="arrow">↗</span>
-          </div>
-        </article>
-
-        <article class="project project-wide">
-          <div class="project-visual visual-four">
-            <span class="project-tag">04 / RESEARCH</span>
-            <div class="bars"><i></i><i></i><i></i><i></i><i></i></div>
-            <span class="data-label">DATA / IDEAS / PEOPLE</span>
-          </div>
-          <div class="project-info">
-            <div>
-              <h3>Project Four</h3>
-              <p>Research-driven work turning information into something useful.</p>
-            </div>
-            <span class="arrow">↗</span>
-          </div>
-        </article>
+      <div class="bars">
+        <i></i>
+        <i></i>
+        <i></i>
+        <i></i>
       </div>
-    </section>
+    </div>
 
-    <section id="about" class="about-section">
-      <div class="container about-grid">
-        <div>
-          <span class="section-kicker">ABOUT</span>
-          <h2>Curious by<br><span>default.</span></h2>
-        </div>
-        <div class="about-copy">
-          <p class="large-copy">
-            I like learning how things work, figuring out how they could work
-            better, and actually building the answer.
-          </p>
-          <p>
-            My interests sit at the intersection of technology, creativity,
-            research, and communication. I care about details, but I care even
-            more about whether the final result is genuinely useful.
-          </p>
-          <div class="stats">
-            <div><strong>01</strong><span>Curiosity</span></div>
-            <div><strong>02</strong><span>Creativity</span></div>
-            <div><strong>03</strong><span>Execution</span></div>
-          </div>
-        </div>
-      </div>
-    </section>
+    <div class="views">
+      <span id="viewCount">12,481</span> views
+    </div>
 
-    <section class="skills-section container">
-      <div class="section-heading compact">
-        <div>
-          <span class="section-kicker">CAPABILITIES</span>
-          <h2>What I<br><span>bring.</span></h2>
-        </div>
-      </div>
-      <div class="skills-grid">
-        <div class="skill"><span>01</span><h3>Creative Direction</h3><p>Visual concepts, systems, and experiences.</p></div>
-        <div class="skill"><span>02</span><h3>Web Development</h3><p>Responsive, accessible, modern websites.</p></div>
-        <div class="skill"><span>03</span><h3>Research</h3><p>Finding patterns, asking questions, understanding people.</p></div>
-        <div class="skill"><span>04</span><h3>Communication</h3><p>Making complex ideas clear and engaging.</p></div>
-      </div>
-    </section>
-
-    <section id="contact" class="contact container">
-      <div class="contact-card">
-        <span class="section-kicker">HAVE A PROJECT?</span>
-        <h2>Let's make<br><em>something great.</em></h2>
-        <p>I'm always interested in interesting ideas, collaborations, and new opportunities.</p>
-        <a class="button primary" href="mailto:hello@example.com">hello@example.com <span>↗</span></a>
-      </div>
-    </section>
   </main>
-
-  <footer class="footer container">
-    <span>© 2026 Your Name</span>
-    <span>Designed & built with intention.</span>
-    <a href="#top">Back to top ↑</a>
-  </footer>
 
   <script src="script.js"></script>
 </body>
-</html>
+</html>`}
