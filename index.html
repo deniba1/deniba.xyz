@@ -5,23 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Deni — deniba.xyz</title>
-    <meta name="description" content="Deni's personal website.">
+    <meta name="description" content="Deni's corner of the internet.">
 
-    <!-- Icons -->
+    <!-- Lucide icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <!-- Arch Linux icon -->
+    <!-- Devicon -->
     <link rel="stylesheet"
           href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css">
 
     <style>
         :root {
-            --bg: #0b0b0c;
-            --text: #e8e8e8;
-            --muted: #858585;
-            --border: #242426;
-            --hover: #161618;
-            --accent: #ffffff;
+            --bg: #0a0a0b;
+            --panel: #101011;
+            --panel-hover: #141416;
+            --text: #e9e9ea;
+            --muted: #858589;
+            --dim: #555559;
+            --border: #222225;
+            --border-hover: #333338;
+            --green: #91d66b;
         }
 
         * {
@@ -43,7 +46,6 @@
                 BlinkMacSystemFont,
                 "Segoe UI",
                 sans-serif;
-            line-height: 1.6;
             -webkit-font-smoothing: antialiased;
         }
 
@@ -52,291 +54,345 @@
             text-decoration: none;
         }
 
-        .container {
-            width: min(920px, calc(100% - 40px));
+        .page {
+            width: min(1060px, calc(100% - 32px));
             margin: 0 auto;
         }
 
-        /* NAV */
+        /* ---------------- NAV ---------------- */
 
         nav {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 20;
-
-            height: 64px;
-
-            background: rgba(11, 11, 12, 0.82);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-
-            border-bottom: 1px solid rgba(255,255,255,0.04);
+            height: 58px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
         }
 
-        .nav-inner {
+        .brand {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: -0.025em;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .nav-link {
+            color: var(--muted);
+            font-size: 12px;
+            transition: color .2s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--text);
+        }
+
+        .availability {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            background: var(--green);
+            border-radius: 50%;
+            box-shadow: 0 0 9px rgba(145, 214, 107, .5);
+        }
+
+        /* ---------------- HERO ---------------- */
+
+        .hero {
+            min-height: 390px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .hero-inner {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 270px;
+            gap: 50px;
+            align-items: end;
+            padding: 55px 0 48px;
+        }
+
+        .hero h1 {
+            margin: 0;
+            font-size: clamp(72px, 12vw, 128px);
+            line-height: .82;
+            letter-spacing: -.085em;
+            font-weight: 650;
+        }
+
+        .tagline {
+            max-width: 570px;
+            margin: 27px 0 0;
+            color: var(--muted);
+            font-size: 15px;
+            line-height: 1.65;
+        }
+
+        .tagline strong {
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .hero-meta {
+            border-left: 1px solid var(--border);
+            padding-left: 22px;
+        }
+
+        .meta-label {
+            color: var(--dim);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .12em;
+            margin-bottom: 7px;
+        }
+
+        .meta-value {
+            font-size: 13px;
+            margin-bottom: 21px;
+        }
+
+        .meta-value:last-child {
+            margin-bottom: 0;
+        }
+
+        /* ---------------- MAIN GRID ---------------- */
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.35fr;
+            grid-template-areas:
+                "about skills"
+                "contact skills";
+            gap: 12px;
+            padding: 12px 0;
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            transition:
+                border-color .25s ease,
+                background .25s ease,
+                transform .25s ease;
+        }
+
+        .card:hover {
+            background: var(--panel-hover);
+            border-color: var(--border-hover);
+        }
+
+        .about {
+            grid-area: about;
+            min-height: 230px;
+        }
+
+        .skills {
+            grid-area: skills;
+        }
+
+        .contact {
+            grid-area: contact;
+            min-height: 125px;
+        }
+
+        .card-inner {
+            padding: 23px;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 27px;
+        }
+
+        .card-title {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: -.01em;
+        }
+
+        .card-number {
+            color: var(--dim);
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 10px;
+        }
+
+        /* ---------------- ABOUT ---------------- */
+
+        .about-main {
+            font-size: 19px;
+            line-height: 1.45;
+            letter-spacing: -.025em;
+        }
+
+        .about-main .muted {
+            color: var(--muted);
+        }
+
+        .about-small {
+            margin-top: 25px;
+            padding-top: 18px;
+            border-top: 1px solid var(--border);
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.65;
+        }
+
+        /* ---------------- SKILLS ---------------- */
+
+        .skill-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 9px;
+        }
+
+        .skill {
+            min-height: 105px;
+            padding: 17px;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition:
+                border-color .2s ease,
+                transform .2s ease;
+        }
+
+        .skill:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-2px);
+        }
+
+        .skill-icon {
+            width: 30px;
+            height: 30px;
+            display: grid;
+            place-items: center;
+            color: #bdbdc1;
+        }
+
+        .skill-icon svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .skill-icon i {
+            font-size: 21px;
+        }
+
+        .skill-name {
+            font-size: 12px;
+            font-weight: 550;
+        }
+
+        .skill-description {
+            color: var(--dim);
+            font-size: 10px;
+            margin-top: 3px;
+        }
+
+        /* ---------------- CONTACT ---------------- */
+
+        .contact .card-inner {
             height: 100%;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 20px;
         }
 
-        .logo {
-            font-size: 15px;
-            font-weight: 600;
-            letter-spacing: -0.02em;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 24px;
+        .contact-label {
             color: var(--muted);
-            font-size: 13px;
-        }
-
-        .nav-links a {
-            transition: color 0.2s ease;
-        }
-
-        .nav-links a:hover {
-            color: var(--text);
-        }
-
-        /* HERO */
-
-        .hero {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            padding-top: 64px;
-        }
-
-        .hero-content {
-            animation: appear 0.8s ease both;
-        }
-
-        .eyebrow {
-            display: flex;
-            align-items: center;
-            gap: 9px;
-
-            color: var(--muted);
-            font-size: 13px;
-            margin-bottom: 18px;
-        }
-
-        .status {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: #8bd450;
-            box-shadow: 0 0 12px rgba(139, 212, 80, 0.45);
-            animation: pulse 2.4s infinite;
-        }
-
-        h1 {
-            margin: 0;
-
-            font-size: clamp(68px, 12vw, 128px);
-            line-height: 0.9;
-            letter-spacing: -0.075em;
-            font-weight: 650;
-        }
-
-        .hero-description {
-            max-width: 530px;
-            margin-top: 30px;
-
-            color: var(--muted);
-            font-size: 17px;
-        }
-
-        .hero-description strong {
-            color: var(--text);
-            font-weight: 500;
-        }
-
-        .hero-links {
-            display: flex;
-            gap: 10px;
-            margin-top: 30px;
-        }
-
-        .button {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-
-            padding: 9px 14px;
-
-            border: 1px solid var(--border);
-            border-radius: 7px;
-
-            color: var(--muted);
-            font-size: 13px;
-
-            transition:
-                background 0.2s ease,
-                color 0.2s ease,
-                border-color 0.2s ease,
-                transform 0.2s ease;
-        }
-
-        .button:hover {
-            background: var(--hover);
-            border-color: #38383b;
-            color: var(--text);
-            transform: translateY(-2px);
-        }
-
-        /* SECTIONS */
-
-        section {
-            padding: 120px 0;
-            border-top: 1px solid var(--border);
-        }
-
-        .section-heading {
-            display: flex;
-            align-items: baseline;
-            justify-content: space-between;
-            margin-bottom: 42px;
-        }
-
-        .section-number {
-            color: #4d4d50;
-            font-family: monospace;
-            font-size: 12px;
-        }
-
-        h2 {
-            margin: 0;
-            font-size: 25px;
-            letter-spacing: -0.035em;
-            font-weight: 600;
-        }
-
-        .about-text {
-            max-width: 650px;
-            font-size: 21px;
-            line-height: 1.55;
-            letter-spacing: -0.02em;
-        }
-
-        .about-text span {
-            color: var(--muted);
-        }
-
-        /* SKILLS */
-
-        .skills {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-        }
-
-        .skill {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-
-            padding: 20px;
-
-            border: 1px solid var(--border);
-            border-radius: 9px;
-
-            transition:
-                border-color 0.25s ease,
-                background 0.25s ease,
-                transform 0.25s ease;
-        }
-
-        .skill:hover {
-            background: var(--hover);
-            border-color: #363639;
-            transform: translateY(-3px);
-        }
-
-        .skill-icon {
-            width: 38px;
-            height: 38px;
-
-            display: grid;
-            place-items: center;
-
-            border: 1px solid var(--border);
-            border-radius: 7px;
-
-            color: #bcbcbc;
-            font-size: 19px;
-        }
-
-        .skill-name {
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .skill-subtitle {
-            color: var(--muted);
-            font-size: 12px;
-            margin-top: 2px;
-        }
-
-        /* CONTACT */
-
-        .contact {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 30px;
-        }
-
-        .contact-copy {
-            color: var(--muted);
-            font-size: 14px;
+            font-size: 11px;
+            margin-bottom: 5px;
         }
 
         .email {
-            display: inline-flex;
-            align-items: center;
-            gap: 9px;
-
-            font-size: 18px;
+            font-size: 14px;
             font-weight: 500;
-
-            border-bottom: 1px solid #454549;
-            padding-bottom: 4px;
-
-            transition:
-                color 0.2s ease,
-                border-color 0.2s ease;
+            transition: color .2s ease;
         }
 
         .email:hover {
-            color: white;
-            border-color: white;
+            color: #fff;
         }
 
-        /* FOOTER */
+        .email-icon {
+            width: 30px;
+            height: 30px;
+            display: grid;
+            place-items: center;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--muted);
+        }
+
+        .email-icon svg {
+            width: 14px;
+        }
+
+        /* ---------------- FOOTER ---------------- */
 
         footer {
-            padding: 30px 0 45px;
-            color: #4f4f52;
-            font-size: 12px;
-        }
-
-        footer .footer-inner {
+            height: 62px;
             display: flex;
+            align-items: center;
             justify-content: space-between;
+            color: var(--dim);
+            font-size: 10px;
         }
 
-        /* ANIMATIONS */
+        .footer-right {
+            display: flex;
+            gap: 15px;
+        }
 
-        @keyframes appear {
+        .footer-right a {
+            transition: color .2s ease;
+        }
+
+        .footer-right a:hover {
+            color: var(--muted);
+        }
+
+        /* ---------------- ANIMATION ---------------- */
+
+        .animate {
+            animation: enter .65s cubic-bezier(.2,.7,.2,1) both;
+        }
+
+        .delay-1 {
+            animation-delay: .06s;
+        }
+
+        .delay-2 {
+            animation-delay: .12s;
+        }
+
+        .delay-3 {
+            animation-delay: .18s;
+        }
+
+        @keyframes enter {
             from {
                 opacity: 0;
-                transform: translateY(16px);
+                transform: translateY(10px);
             }
 
             to {
@@ -345,44 +401,73 @@
             }
         }
 
-        @keyframes pulse {
-            0%, 100% {
-                opacity: 1;
+        /* ---------------- MOBILE ---------------- */
+
+        @media (max-width: 700px) {
+
+            .page {
+                width: min(100% - 22px, 1060px);
             }
 
-            50% {
-                opacity: 0.4;
-            }
-        }
-
-        @media (max-width: 650px) {
-            .container {
-                width: min(100% - 28px, 920px);
-            }
-
-            .nav-links {
+            .nav-right .nav-link {
                 display: none;
             }
 
-            h1 {
-                font-size: 72px;
+            .hero {
+                min-height: auto;
             }
 
-            .hero-description {
-                font-size: 15px;
+            .hero-inner {
+                grid-template-columns: 1fr;
+                gap: 35px;
+                padding: 65px 0 45px;
             }
 
-            section {
-                padding: 85px 0;
+            .hero h1 {
+                font-size: 76px;
             }
 
-            .skills {
+            .hero-meta {
+                border-left: none;
+                border-top: 1px solid var(--border);
+                padding: 17px 0 0;
+                display: flex;
+                gap: 30px;
+            }
+
+            .meta-value {
+                margin-bottom: 0;
+            }
+
+            .content-grid {
+                grid-template-columns: 1fr;
+                grid-template-areas:
+                    "about"
+                    "skills"
+                    "contact";
+            }
+
+            .skill-list {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .about {
+                min-height: auto;
+            }
+        }
+
+        @media (max-width: 430px) {
+
+            .skill-list {
                 grid-template-columns: 1fr;
             }
 
-            .contact {
+            .contact .card-inner {
                 align-items: flex-start;
-                flex-direction: column;
+            }
+
+            footer {
+                height: 75px;
             }
         }
     </style>
@@ -390,209 +475,219 @@
 
 <body>
 
-    <nav>
-        <div class="container nav-inner">
-            <a class="logo" href="#">deniba.xyz</a>
+    <div class="page">
 
-            <div class="nav-links">
-                <a href="#about">about</a>
-                <a href="#skills">skills</a>
-                <a href="#contact">contact</a>
+        <!-- NAV -->
+
+        <nav class="animate">
+            <a href="#" class="brand">deniba.xyz</a>
+
+            <div class="nav-right">
+                <a href="#about" class="nav-link">about</a>
+                <a href="#skills" class="nav-link">skills</a>
+                <a href="#contact" class="nav-link">contact</a>
+
+                <div class="availability">
+                    <span class="dot"></span>
+                    online
+                </div>
             </div>
-        </div>
-    </nav>
+        </nav>
 
-    <main>
 
         <!-- HERO -->
 
-        <section class="hero">
-            <div class="container">
-                <div class="hero-content">
+        <header class="hero">
+            <div class="hero-inner">
 
-                    <div class="eyebrow">
-                        <span class="status"></span>
-                        currently online
-                    </div>
-
+                <div class="animate delay-1">
                     <h1>Deni</h1>
 
-                    <p class="hero-description">
-                        I make things, break things, and occasionally figure out
-                        why I broke them.
-                        <strong>Welcome to deniba.xyz.</strong>
+                    <p class="tagline">
+                        <strong>Certified Claude Code user.</strong>
+                        Professional vibe coder, occasional Linux
+                        troubleshooter, and generally interested in making
+                        things that work.
                     </p>
-
-                    <div class="hero-links">
-                        <a class="button" href="https://github.com/deniba1" target="_blank">
-                            <i data-lucide="github"></i>
-                            GitHub
-                        </a>
-
-                        <a class="button" href="#contact">
-                            <i data-lucide="mail"></i>
-                            Contact
-                        </a>
-                    </div>
-
-                </div>
-            </div>
-        </section>
-
-
-        <!-- ABOUT -->
-
-        <section id="about">
-            <div class="container">
-
-                <div class="section-heading">
-                    <h2>About</h2>
-                    <span class="section-number">01</span>
                 </div>
 
-                <p class="about-text">
-                    <span>Professionally:</span>
-                    certified Claude Code user.
-                    <br><br>
-                    <span>Personally:</span>
-                    terminal enjoyer, Linux enthusiast, and someone who
-                    probably has too many projects open at once.
-                </p>
-
-            </div>
-        </section>
-
-
-        <!-- SKILLS -->
-
-        <section id="skills">
-            <div class="container">
-
-                <div class="section-heading">
-                    <h2>Skills</h2>
-                    <span class="section-number">02</span>
-                </div>
-
-                <div class="skills">
-
-                    <div class="skill">
-                        <div class="skill-icon">
-                            <i data-lucide="sparkles"></i>
-                        </div>
-
-                        <div>
-                            <div class="skill-name">
-                                Master Vibe Coder
-                            </div>
-
-                            <div class="skill-subtitle">
-                                powered by questionable confidence
-                            </div>
-                        </div>
-                    </div>
-
-
-                    <div class="skill">
-                        <div class="skill-icon">
-                            <i class="devicon-archlinux-original"></i>
-                        </div>
-
-                        <div>
-                            <div class="skill-name">
-                                Arch Linux Mastery
-                            </div>
-
-                            <div class="skill-subtitle">
-                                btw
-                            </div>
-                        </div>
-                    </div>
-
-
-                    <div class="skill">
-                        <div class="skill-icon">
-                            <i data-lucide="terminal"></i>
-                        </div>
-
-                        <div>
-                            <div class="skill-name">
-                                Terminal
-                            </div>
-
-                            <div class="skill-subtitle">
-                                sudo and hope
-                            </div>
-                        </div>
-                    </div>
-
-
-                    <div class="skill">
-                        <div class="skill-icon">
-                            <i data-lucide="code-2"></i>
-                        </div>
-
-                        <div>
-                            <div class="skill-name">
-                                Making Stuff
-                            </div>
-
-                            <div class="skill-subtitle">
-                                sometimes intentionally
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-
-            </div>
-        </section>
-
-
-        <!-- CONTACT -->
-
-        <section id="contact">
-            <div class="container">
-
-                <div class="section-heading">
-                    <h2>Contact</h2>
-                    <span class="section-number">03</span>
-                </div>
-
-                <div class="contact">
+                <div class="hero-meta animate delay-2">
 
                     <div>
-                        <div class="contact-copy">
-                            Want to say hi?
+                        <div class="meta-label">Location</div>
+                        <div class="meta-value">somewhere on Earth</div>
+                    </div>
+
+                    <div>
+                        <div class="meta-label">Currently</div>
+                        <div class="meta-value">building things</div>
+                    </div>
+
+                </div>
+
+            </div>
+        </header>
+
+
+        <!-- CONTENT -->
+
+        <main class="content-grid">
+
+            <!-- ABOUT -->
+
+            <section class="card about animate delay-1" id="about">
+                <div class="card-inner">
+
+                    <div class="card-header">
+                        <span class="card-title">About</span>
+                        <span class="card-number">01</span>
+                    </div>
+
+                    <div class="about-main">
+                        Certified Claude Code user.
+                        <br>
+                        <span class="muted">
+                            I like computers, Linux, and making random
+                            projects because I can.
+                        </span>
+                    </div>
+
+                    <div class="about-small">
+                        This site is mostly an excuse to have my own corner
+                        of the internet.
+                    </div>
+
+                </div>
+            </section>
+
+
+            <!-- SKILLS -->
+
+            <section class="card skills animate delay-2" id="skills">
+                <div class="card-inner">
+
+                    <div class="card-header">
+                        <span class="card-title">Skills</span>
+                        <span class="card-number">02</span>
+                    </div>
+
+                    <div class="skill-list">
+
+                        <div class="skill">
+                            <div class="skill-icon">
+                                <i data-lucide="sparkles"></i>
+                            </div>
+
+                            <div>
+                                <div class="skill-name">
+                                    Master Vibe Coder
+                                </div>
+
+                                <div class="skill-description">
+                                    code first, understand later
+                                </div>
+                            </div>
                         </div>
 
-                        <br>
+
+                        <div class="skill">
+                            <div class="skill-icon">
+                                <i class="devicon-archlinux-original"></i>
+                            </div>
+
+                            <div>
+                                <div class="skill-name">
+                                    Arch Linux Mastery
+                                </div>
+
+                                <div class="skill-description">
+                                    btw
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div class="skill">
+                            <div class="skill-icon">
+                                <i data-lucide="terminal"></i>
+                            </div>
+
+                            <div>
+                                <div class="skill-name">
+                                    Terminal
+                                </div>
+
+                                <div class="skill-description">
+                                    suspiciously comfortable
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div class="skill">
+                            <div class="skill-icon">
+                                <i data-lucide="code-2"></i>
+                            </div>
+
+                            <div>
+                                <div class="skill-name">
+                                    Making Stuff
+                                </div>
+
+                                <div class="skill-description">
+                                    usually with a deadline
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </section>
+
+
+            <!-- CONTACT -->
+
+            <section class="card contact animate delay-3" id="contact">
+                <div class="card-inner">
+
+                    <div>
+                        <div class="contact-label">Want to reach me?</div>
 
                         <a class="email" href="mailto:deniba1@proton.me">
-                            <i data-lucide="mail"></i>
                             deniba1@proton.me
                         </a>
                     </div>
 
-                    <a class="button"
-                       href="mailto:deniba1@proton.me">
-                        Send an email
+                    <a class="email-icon"
+                       href="mailto:deniba1@proton.me"
+                       aria-label="Email Deni">
                         <i data-lucide="arrow-up-right"></i>
                     </a>
 
                 </div>
+            </section>
 
-            </div>
-        </section>
-
-    </main>
+        </main>
 
 
-    <footer>
-        <div class="container footer-inner">
+        <!-- FOOTER -->
+
+        <footer>
             <span>© 2026 Deni</span>
-            <span>deniba.xyz</span>
-        </div>
-    </footer>
+
+            <div class="footer-right">
+                <a href="https://github.com/deniba1" target="_blank">
+                    GitHub
+                </a>
+
+                <a href="mailto:deniba1@proton.me">
+                    Email
+                </a>
+            </div>
+        </footer>
+
+    </div>
 
 
     <script>
