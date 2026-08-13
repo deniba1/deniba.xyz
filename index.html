@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Deniba — Portfolio</title>
+    <meta name="description" content="Deniba's personal portfolio.">
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            background: #080808;
+            color: #f5f5f5;
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Background */
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background:
+                radial-gradient(circle at 50% 0%, rgba(120, 120, 255, 0.12), transparent 35%),
+                radial-gradient(circle at 0% 100%, rgba(80, 120, 255, 0.06), transparent 30%);
+            z-index: -2;
+        }
+
+        body::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            opacity: 0.035;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
+            z-index: -1;
+        }
+
+        /* Navigation */
+
+        nav {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: min(92%, 700px);
+            padding: 12px 18px;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            background: rgba(15, 15, 15, 0.72);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+
+            z-index: 100;
+        }
+
+        .logo {
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 22px;
+        }
+
+        .nav-links a {
+            color: #999;
+            text-decoration: none;
+            font-size: 14px;
+            transition: 0.2s ease;
+        }
+
+        .nav-links a:hover {
+            color: white;
+        }
+
+        /* Main */
+
+        main {
+            width: min(900px, 90%);
+            margin: auto;
+        }
+
+        section {
+            padding: 120px 0;
+        }
+
+        /* Hero */
+
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .hero-content {
+            animation: fadeUp 0.8s ease forwards;
+        }
+
+        .avatar {
+            width: 96px;
+            height: 96px;
+            margin: 0 auto 25px;
+
+            border-radius: 50%;
+
+            background:
+                linear-gradient(135deg, #242424, #111);
+
+            border: 1px solid rgba(255, 255, 255, 0.12);
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            font-size: 30px;
+            font-weight: 700;
+
+            box-shadow:
+                0 0 50px rgba(100, 100, 255, 0.12);
+        }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+
+            padding: 7px 12px;
+            margin-bottom: 20px;
+
+            border-radius: 999px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+
+            color: #aaa;
+            font-size: 13px;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #6cff9a;
+            box-shadow: 0 0 10px #6cff9a;
+        }
+
+        h1 {
+            margin: 0;
+
+            font-size: clamp(55px, 10vw, 100px);
+            line-height: 0.95;
+            letter-spacing: -5px;
+
+            background: linear-gradient(
+                180deg,
+                #ffffff 20%,
+                #777 100%
+            );
+
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-description {
+            max-width: 550px;
+            margin: 28px auto;
+
+            color: #999;
+            font-size: 17px;
+            line-height: 1.7;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .button {
+            padding: 12px 18px;
+            border-radius: 12px;
+
+            text-decoration: none;
+            font-size: 14px;
+
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.06);
+
+            color: white;
+
+            transition: 0.25s ease;
+        }
+
+        .button.primary {
+            background: white;
+            color: black;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255,255,255,0.25);
+        }
+
+        /* Section headings */
+
+        .section-label {
+            color: #777;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            font-size: 38px;
+            margin: 0 0 35px;
+            letter-spacing: -1.5px;
+        }
+
+        /* About */
+
+        .about-card {
+            padding: 30px;
+
+            border-radius: 20px;
+
+            background: rgba(255,255,255,0.035);
+            border: 1px solid rgba(255,255,255,0.08);
+
+            color: #aaa;
+            line-height: 1.8;
+        }
+
+        /* Projects */
+
+        .projects {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .project {
+            padding: 25px;
+            min-height: 180px;
+
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+
+            border-radius: 18px;
+
+            background: rgba(255,255,255,0.035);
+            border: 1px solid rgba(255,255,255,0.08);
+
+            text-decoration: none;
+            color: white;
+
+            transition: 0.25s ease;
+        }
+
+        .project:hover {
+            transform: translateY(-4px);
+            background: rgba(255,255,255,0.055);
+            border-color: rgba(255,255,255,0.16);
+        }
+
+        .project-number {
+            color: #666;
+            font-size: 12px;
+        }
+
+        .project h3 {
+            margin: 0 0 7px;
+            font-size: 20px;
+        }
+
+        .project p {
+            margin: 0;
+            color: #888;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* Skills */
+
+        .skills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .skill {
+            padding: 10px 14px;
+
+            border-radius: 10px;
+
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        /* Contact */
+
+        .contact {
+            text-align: center;
+        }
+
+        .contact p {
+            color: #888;
+            margin-bottom: 25px;
+        }
+
+        /* Footer */
+
+        footer {
+            padding: 40px 0 60px;
+            text-align: center;
+            color: #555;
+            font-size: 13px;
+        }
+
+        /* Animation */
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Mobile */
+
+        @media (max-width: 650px) {
+
+            nav {
+                top: 12px;
+            }
+
+            .nav-links {
+                gap: 12px;
+            }
+
+            .nav-links a {
+                font-size: 12px;
+            }
+
+            h1 {
+                letter-spacing: -3px;
+            }
+
+            section {
+                padding: 80px 0;
+            }
+
+            .projects {
+                grid-template-columns: 1fr;
+            }
+
+            .about-card {
+                padding: 22px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <div class="logo">deniba.xyz</div>
+
+        <div class="nav-links">
+            <a href="#about">About</a>
+            <a href="#projects">Projects</a>
+            <a href="#contact">Contact</a>
+        </div>
+    </nav>
+
+
+    <main>
+
+        <!-- HERO -->
+
+        <section class="hero">
+
+            <div class="hero-content">
+
+                <div class="avatar">
+                    D
+                </div>
+
+                <div class="status">
+                    <span class="status-dot"></span>
+                    Available
+                </div>
+
+                <h1>Deniba.</h1>
+
+                <p class="hero-description">
+                    Student, creator, and someone who likes building things
+                    on the internet.
+                </p>
+
+                <div class="buttons">
+                    <a class="button primary" href="#projects">
+                        View my work
+                    </a>
+
+                    <a class="button" href="#contact">
+                        Get in touch
+                    </a>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ABOUT -->
+
+        <section id="about">
+
+            <div class="section-label">
+                01 — About
+            </div>
+
+            <h2>A little about me.</h2>
+
+            <div class="about-card">
+
+                <p>
+                    Hey! I'm Deniba. I'm interested in technology,
+                    design, and building projects that are actually
+                    useful — or at least interesting.
+                </p>
+
+                <p>
+                    This website is a place to keep track of the things
+                    I'm working on, experiment with new ideas, and
+                    generally have my own little corner of the internet.
+                </p>
+
+            </div>
+
+        </section>
+
+
+        <!-- PROJECTS -->
+
+        <section id="projects">
+
+            <div class="section-label">
+                02 — Projects
+            </div>
+
+            <h2>Things I've built.</h2>
+
+            <div class="projects">
+
+                <a href="#" class="project">
+
+                    <div class="project-number">
+                        PROJECT / 01
+                    </div>
+
+                    <div>
+                        <h3>Project One</h3>
+
+                        <p>
+                            A short description of something
+                            interesting you've built.
+                        </p>
+                    </div>
+
+                </a>
+
+
+                <a href="#" class="project">
+
+                    <div class="project-number">
+                        PROJECT / 02
+                    </div>
+
+                    <div>
+                        <h3>Project Two</h3>
+
+                        <p>
+                            Another project, experiment,
+                            or thing you're proud of.
+                        </p>
+                    </div>
+
+                </a>
+
+
+                <a href="#" class="project">
+
+                    <div class="project-number">
+                        PROJECT / 03
+                    </div>
+
+                    <div>
+                        <h3>Project Three</h3>
+
+                        <p>
+                            Something else you've created.
+                        </p>
+                    </div>
+
+                </a>
+
+
+                <a href="#" class="project">
+
+                    <div class="project-number">
+                        PROJECT / 04
+                    </div>
+
+                    <div>
+                        <h3>Project Four</h3>
+
+                        <p>
+                            More projects can go here later.
+                        </p>
+                    </div>
+
+                </a>
+
+            </div>
+
+        </section>
+
+
+        <!-- SKILLS -->
+
+        <section>
+
+            <div class="section-label">
+                03 — Skills
+            </div>
+
+            <h2>What I work with.</h2>
+
+            <div class="skills">
+
+                <span class="skill">HTML</span>
+                <span class="skill">CSS</span>
+                <span class="skill">JavaScript</span>
+                <span class="skill">Git</span>
+                <span class="skill">GitHub</span>
+                <span class="skill">Design</span>
+                <span class="skill">Problem Solving</span>
+
+            </div>
+
+        </section>
+
+
+        <!-- CONTACT -->
+
+        <section id="contact" class="contact">
+
+            <div class="section-label">
+                04 — Contact
+            </div>
+
+            <h2>Let's talk.</h2>
+
+            <p>
+                Want to get in touch? Find me online.
+            </p>
+
+            <div class="buttons">
+
+                <a class="button" href="#">
+                    GitHub
+                </a>
+
+                <a class="button" href="#">
+                    Discord
+                </a>
+
+                <a class="button" href="#">
+                    Email
+                </a>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <footer>
+        © 2026 deniba.xyz
+    </footer>
+
+</body>
+</html>
