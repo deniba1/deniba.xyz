@@ -1,699 +1,191 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>deniba.xyz</title>
-    <meta name="description" content="no citrus this isnt vibe coded stfu you nga">
-
-    <!-- Lucide icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-
-    <!-- Devicon -->
-    <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css">
-
-    <style>
-        :root {
-            --bg: #0a0a0b;
-            --panel: #101011;
-            --panel-hover: #141416;
-            --text: #e9e9ea;
-            --muted: #858589;
-            --dim: #555559;
-            --border: #222225;
-            --border-hover: #333338;
-            --green: #91d66b;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        html {
-            scroll-behavior: smooth;
-        }
-
-        body {
-            margin: 0;
-            background: var(--bg);
-            color: var(--text);
-            font-family:
-                Inter,
-                ui-sans-serif,
-                -apple-system,
-                BlinkMacSystemFont,
-                "Segoe UI",
-                sans-serif;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        a {
-            color: inherit;
-            text-decoration: none;
-        }
-
-        .page {
-            width: min(1060px, calc(100% - 32px));
-            margin: 0 auto;
-        }
-
-        /* ---------------- NAV ---------------- */
-
-        nav {
-            height: 58px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .brand {
-            font-size: 14px;
-            font-weight: 600;
-            letter-spacing: -0.025em;
-        }
-
-        .nav-right {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .nav-link {
-            color: var(--muted);
-            font-size: 12px;
-            transition: color .2s ease;
-        }
-
-        .nav-link:hover {
-            color: var(--text);
-        }
-
-        .availability {
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            color: var(--muted);
-            font-size: 11px;
-        }
-
-        .dot {
-            width: 6px;
-            height: 6px;
-            background: var(--green);
-            border-radius: 50%;
-            box-shadow: 0 0 9px rgba(145, 214, 107, .5);
-        }
-
-        /* ---------------- HERO ---------------- */
-
-        .hero {
-            min-height: 390px;
-            display: flex;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .hero-inner {
-            width: 100%;
-            display: grid;
-            grid-template-columns: 1fr 270px;
-            gap: 50px;
-            align-items: end;
-            padding: 55px 0 48px;
-        }
-
-        .hero h1 {
-            margin: 0;
-            font-size: clamp(72px, 12vw, 128px);
-            line-height: .82;
-            letter-spacing: -.085em;
-            font-weight: 650;
-        }
-
-        .tagline {
-            max-width: 570px;
-            margin: 27px 0 0;
-            color: var(--muted);
-            font-size: 15px;
-            line-height: 1.65;
-        }
-
-        .tagline strong {
-            color: var(--text);
-            font-weight: 500;
-        }
-
-        .hero-meta {
-            border-left: 1px solid var(--border);
-            padding-left: 22px;
-        }
-
-        .meta-label {
-            color: var(--dim);
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: .12em;
-            margin-bottom: 7px;
-        }
-
-        .meta-value {
-            font-size: 13px;
-            margin-bottom: 21px;
-        }
-
-        .meta-value:last-child {
-            margin-bottom: 0;
-        }
-
-        /* ---------------- MAIN GRID ---------------- */
-
-        .content-grid {
-            display: grid;
-            grid-template-columns: 1fr 1.35fr;
-            grid-template-areas:
-                "about skills"
-                "contact skills";
-            gap: 12px;
-            padding: 12px 0;
-        }
-
-        .card {
-            background: var(--panel);
-            border: 1px solid var(--border);
-            border-radius: 9px;
-            transition:
-                border-color .25s ease,
-                background .25s ease,
-                transform .25s ease;
-        }
-
-        .card:hover {
-            background: var(--panel-hover);
-            border-color: var(--border-hover);
-        }
-
-        .about {
-            grid-area: about;
-            min-height: 230px;
-        }
-
-        .skills {
-            grid-area: skills;
-        }
-
-        .contact {
-            grid-area: contact;
-            min-height: 125px;
-        }
-
-        .card-inner {
-            padding: 23px;
-        }
-
-        .card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 27px;
-        }
-
-        .card-title {
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: -.01em;
-        }
-
-        .card-number {
-            color: var(--dim);
-            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-            font-size: 10px;
-        }
-
-        /* ---------------- ABOUT ---------------- */
-
-        .about-main {
-            font-size: 19px;
-            line-height: 1.45;
-            letter-spacing: -.025em;
-        }
-
-        .about-main .muted {
-            color: var(--muted);
-        }
-
-        .about-small {
-            margin-top: 25px;
-            padding-top: 18px;
-            border-top: 1px solid var(--border);
-            color: var(--muted);
-            font-size: 12px;
-            line-height: 1.65;
-        }
-
-        /* ---------------- SKILLS ---------------- */
-
-        .skill-list {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 9px;
-        }
-
-        .skill {
-            min-height: 105px;
-            padding: 17px;
-            border: 1px solid var(--border);
-            border-radius: 7px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            transition:
-                border-color .2s ease,
-                transform .2s ease;
-        }
-
-        .skill:hover {
-            border-color: var(--border-hover);
-            transform: translateY(-2px);
-        }
-
-        .skill-icon {
-            width: 30px;
-            height: 30px;
-            display: grid;
-            place-items: center;
-            color: #bdbdc1;
-        }
-
-        .skill-icon svg {
-            width: 18px;
-            height: 18px;
-        }
-
-        .skill-icon i {
-            font-size: 21px;
-        }
-
-        .skill-name {
-            font-size: 12px;
-            font-weight: 550;
-        }
-
-        .skill-description {
-            color: var(--dim);
-            font-size: 10px;
-            margin-top: 3px;
-        }
-
-        /* ---------------- CONTACT ---------------- */
-
-        .contact .card-inner {
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 20px;
-        }
-
-        .contact-label {
-            color: var(--muted);
-            font-size: 11px;
-            margin-bottom: 5px;
-        }
-
-        .email {
-            font-size: 14px;
-            font-weight: 500;
-            transition: color .2s ease;
-        }
-
-        .email:hover {
-            color: #fff;
-        }
-
-        .email-icon {
-            width: 30px;
-            height: 30px;
-            display: grid;
-            place-items: center;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            color: var(--muted);
-        }
-
-        .email-icon svg {
-            width: 14px;
-        }
-
-        /* ---------------- FOOTER ---------------- */
-
-        footer {
-            height: 62px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            color: var(--dim);
-            font-size: 10px;
-        }
-
-        .footer-right {
-            display: flex;
-            gap: 15px;
-        }
-
-        .footer-right a {
-            transition: color .2s ease;
-        }
-
-        .footer-right a:hover {
-            color: var(--muted);
-        }
-
-        /* ---------------- ANIMATION ---------------- */
-
-        .animate {
-            animation: enter .65s cubic-bezier(.2,.7,.2,1) both;
-        }
-
-        .delay-1 {
-            animation-delay: .06s;
-        }
-
-        .delay-2 {
-            animation-delay: .12s;
-        }
-
-        .delay-3 {
-            animation-delay: .18s;
-        }
-
-        @keyframes enter {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* ---------------- MOBILE ---------------- */
-
-        @media (max-width: 700px) {
-
-            .page {
-                width: min(100% - 22px, 1060px);
-            }
-
-            .nav-right .nav-link {
-                display: none;
-            }
-
-            .hero {
-                min-height: auto;
-            }
-
-            .hero-inner {
-                grid-template-columns: 1fr;
-                gap: 35px;
-                padding: 65px 0 45px;
-            }
-
-            .hero h1 {
-                font-size: 76px;
-            }
-
-            .hero-meta {
-                border-left: none;
-                border-top: 1px solid var(--border);
-                padding: 17px 0 0;
-                display: flex;
-                gap: 30px;
-            }
-
-            .meta-value {
-                margin-bottom: 0;
-            }
-
-            .content-grid {
-                grid-template-columns: 1fr;
-                grid-template-areas:
-                    "about"
-                    "skills"
-                    "contact";
-            }
-
-            .skill-list {
-                grid-template-columns: 1fr 1fr;
-            }
-
-            .about {
-                min-height: auto;
-            }
-        }
-
-        @media (max-width: 430px) {
-
-            .skill-list {
-                grid-template-columns: 1fr;
-            }
-
-            .contact .card-inner {
-                align-items: flex-start;
-            }
-
-            footer {
-                height: 75px;
-            }
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="A modern portfolio showcasing creative work, projects, skills, and experience." />
+  <title>Your Name — Portfolio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
+  <div class="noise"></div>
 
-    <div class="page">
+  <header class="nav-wrap">
+    <nav class="nav container">
+      <a class="logo" href="#top">YN<span>.</span></a>
+      <div class="nav-links">
+        <a href="#work">Work</a>
+        <a href="#about">About</a>
+        <a href="#contact">Contact</a>
+      </div>
+      <a class="nav-cta" href="#contact">Let's talk <span>↗</span></a>
+    </nav>
+  </header>
 
-        <!-- NAV -->
+  <main id="top">
+    <section class="hero container">
+      <div class="hero-copy">
+        <div class="eyebrow"><span class="status-dot"></span> Available for opportunities</div>
+        <h1>Building things<br><em>worth remembering.</em></h1>
+        <p class="hero-text">
+          I'm a creative problem-solver focused on thoughtful design, technology,
+          and projects that turn good ideas into something real.
+        </p>
+        <div class="hero-actions">
+          <a class="button primary" href="#work">Explore my work <span>↘</span></a>
+          <a class="button ghost" href="#contact">Get in touch</a>
+        </div>
+      </div>
 
-        <nav class="animate">
-            <a href="#" class="brand">deniba.xyz</a>
+      <div class="hero-art">
+        <div class="orb orb-a"></div>
+        <div class="orb orb-b"></div>
+        <div class="grid-card">
+          <span class="grid-label">CREATIVE / TECH</span>
+          <div class="grid-cross">+</div>
+          <div class="grid-number">01</div>
+        </div>
+      </div>
+    </section>
 
-<div class="nav-right">
-    <a href="#about" class="nav-link">about</a>
-    <a href="#skills" class="nav-link">skills</a>
-    <a href="#contact" class="nav-link">contact</a>
-    <a href="games.html" class="nav-link">arcade</a>
+    <section class="ticker">
+      <div class="ticker-track">
+        <span>DESIGN</span><b>✦</b><span>DEVELOPMENT</span><b>✦</b>
+        <span>CREATIVE THINKING</span><b>✦</b><span>PROBLEM SOLVING</span><b>✦</b>
+        <span>DESIGN</span><b>✦</b><span>DEVELOPMENT</span><b>✦</b>
+      </div>
+    </section>
 
-    <div class="availability">
-                    <span class="dot"></span>
-                    online
-                </div>
+    <section id="work" class="section container">
+      <div class="section-heading">
+        <div>
+          <span class="section-kicker">SELECTED WORK</span>
+          <h2>Projects with<br><span>purpose.</span></h2>
+        </div>
+        <p>Things I've built, designed, researched, and experimented with.</p>
+      </div>
+
+      <div class="project-grid">
+        <article class="project project-large">
+          <div class="project-visual visual-one">
+            <span class="project-tag">01 / FEATURED</span>
+            <div class="visual-shape"></div>
+            <div class="visual-title">PROJECT<br>ONE</div>
+          </div>
+          <div class="project-info">
+            <div>
+              <h3>Project One</h3>
+              <p>A polished digital experience built around a simple idea.</p>
             </div>
-        </nav>
+            <span class="arrow">↗</span>
+          </div>
+        </article>
 
-
-        <!-- HERO -->
-
-        <header class="hero">
-            <div class="hero-inner">
-
-                <div class="animate delay-1">
-                    <h1>Deni</h1>
-
-                    <p class="tagline">
-                        <strong>Certified Claude Code user.</strong>
-                        Professional vibe coder, occasional Linux
-                        troubleshooter, and generally interested in making
-                        things that work.
-                    </p>
-                </div>
-
-                <div class="hero-meta animate delay-2">
-
-                    <div>
-                        <div class="meta-label">Location</div>
-                        <div class="meta-value">somewhere on Earth</div>
-                    </div>
-
-                    <div>
-                        <div class="meta-label">Currently</div>
-                        <div class="meta-value">building things</div>
-                    </div>
-
-                </div>
-
+        <article class="project">
+          <div class="project-visual visual-two">
+            <span class="project-tag">02 / WEB</span>
+            <div class="mini-cards"><i></i><i></i><i></i></div>
+          </div>
+          <div class="project-info">
+            <div>
+              <h3>Project Two</h3>
+              <p>Modern interface and responsive development.</p>
             </div>
-        </header>
+            <span class="arrow">↗</span>
+          </div>
+        </article>
 
-
-        <!-- CONTENT -->
-
-        <main class="content-grid">
-
-            <!-- ABOUT -->
-
-            <section class="card about animate delay-1" id="about">
-                <div class="card-inner">
-
-                    <div class="card-header">
-                        <span class="card-title">About</span>
-                        <span class="card-number">01</span>
-                    </div>
-
-                    <div class="about-main">
-                        Certified Claude Code user.
-                        <br>
-                        <span class="muted">
-                            I like computers, Linux, and making random
-                            projects because I can.
-                        </span>
-                    </div>
-
-                    <div class="about-small">
-                        This site is mostly an excuse to have my own corner
-                        of the internet.
-                    </div>
-
-                </div>
-            </section>
-
-
-            <!-- SKILLS -->
-
-            <section class="card skills animate delay-2" id="skills">
-                <div class="card-inner">
-
-                    <div class="card-header">
-                        <span class="card-title">Skills</span>
-                        <span class="card-number">02</span>
-                    </div>
-
-                    <div class="skill-list">
-
-                        <div class="skill">
-                            <div class="skill-icon">
-                                <i data-lucide="sparkles"></i>
-                            </div>
-
-                            <div>
-                                <div class="skill-name">
-                                    Master Vibe Coder
-                                </div>
-
-                                <div class="skill-description">
-                                    code first, understand later
-                                </div>
-                            </div>
-                        </div>
-
-
-                        <div class="skill">
-                            <div class="skill-icon">
-                                <i class="devicon-archlinux-original"></i>
-                            </div>
-
-                            <div>
-                                <div class="skill-name">
-                                    Arch Linux Mastery
-                                </div>
-
-                                <div class="skill-description">
-                                    btw
-                                </div>
-                            </div>
-                        </div>
-
-
-                        <div class="skill">
-                            <div class="skill-icon">
-                                <i data-lucide="terminal"></i>
-                            </div>
-
-                            <div>
-                                <div class="skill-name">
-                                    Terminal
-                                </div>
-
-                                <div class="skill-description">
-                                    suspiciously comfortable
-                                </div>
-                            </div>
-                        </div>
-
-
-                        <div class="skill">
-                            <div class="skill-icon">
-                                <i data-lucide="code-2"></i>
-                            </div>
-
-                            <div>
-                                <div class="skill-name">
-                                    Making Stuff
-                                </div>
-
-                                <div class="skill-description">
-                                    usually with a deadline
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-
-                </div>
-            </section>
-
-
-            <!-- CONTACT -->
-
-            <section class="card contact animate delay-3" id="contact">
-                <div class="card-inner">
-
-                    <div>
-                        <div class="contact-label">Want to reach me?</div>
-
-                        <a class="email" href="mailto:deniba1@proton.me">
-                            deniba1@proton.me
-                        </a>
-                    </div>
-
-                    <a class="email-icon"
-                       href="mailto:deniba1@proton.me"
-                       aria-label="Email Deni">
-                        <i data-lucide="arrow-up-right"></i>
-                    </a>
-
-                </div>
-            </section>
-
-        </main>
-
-
-        <!-- FOOTER -->
-
-        <footer>
-            <span>© 2026 Deni</span>
-
-            <div class="footer-right">
-                <a href="https://github.com/deniba1" target="_blank">
-                    GitHub
-                </a>
-
-                <a href="mailto:deniba1@proton.me">
-                    Email
-                </a>
+        <article class="project">
+          <div class="project-visual visual-three">
+            <span class="project-tag">03 / CONCEPT</span>
+            <div class="ring"></div>
+            <div class="ring ring-small"></div>
+          </div>
+          <div class="project-info">
+            <div>
+              <h3>Project Three</h3>
+              <p>An experiment exploring visual systems and interaction.</p>
             </div>
-        </footer>
+            <span class="arrow">↗</span>
+          </div>
+        </article>
 
-    </div>
+        <article class="project project-wide">
+          <div class="project-visual visual-four">
+            <span class="project-tag">04 / RESEARCH</span>
+            <div class="bars"><i></i><i></i><i></i><i></i><i></i></div>
+            <span class="data-label">DATA / IDEAS / PEOPLE</span>
+          </div>
+          <div class="project-info">
+            <div>
+              <h3>Project Four</h3>
+              <p>Research-driven work turning information into something useful.</p>
+            </div>
+            <span class="arrow">↗</span>
+          </div>
+        </article>
+      </div>
+    </section>
 
+    <section id="about" class="about-section">
+      <div class="container about-grid">
+        <div>
+          <span class="section-kicker">ABOUT</span>
+          <h2>Curious by<br><span>default.</span></h2>
+        </div>
+        <div class="about-copy">
+          <p class="large-copy">
+            I like learning how things work, figuring out how they could work
+            better, and actually building the answer.
+          </p>
+          <p>
+            My interests sit at the intersection of technology, creativity,
+            research, and communication. I care about details, but I care even
+            more about whether the final result is genuinely useful.
+          </p>
+          <div class="stats">
+            <div><strong>01</strong><span>Curiosity</span></div>
+            <div><strong>02</strong><span>Creativity</span></div>
+            <div><strong>03</strong><span>Execution</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-    <script>
-        lucide.createIcons();
-    </script>
+    <section class="skills-section container">
+      <div class="section-heading compact">
+        <div>
+          <span class="section-kicker">CAPABILITIES</span>
+          <h2>What I<br><span>bring.</span></h2>
+        </div>
+      </div>
+      <div class="skills-grid">
+        <div class="skill"><span>01</span><h3>Creative Direction</h3><p>Visual concepts, systems, and experiences.</p></div>
+        <div class="skill"><span>02</span><h3>Web Development</h3><p>Responsive, accessible, modern websites.</p></div>
+        <div class="skill"><span>03</span><h3>Research</h3><p>Finding patterns, asking questions, understanding people.</p></div>
+        <div class="skill"><span>04</span><h3>Communication</h3><p>Making complex ideas clear and engaging.</p></div>
+      </div>
+    </section>
 
+    <section id="contact" class="contact container">
+      <div class="contact-card">
+        <span class="section-kicker">HAVE A PROJECT?</span>
+        <h2>Let's make<br><em>something great.</em></h2>
+        <p>I'm always interested in interesting ideas, collaborations, and new opportunities.</p>
+        <a class="button primary" href="mailto:hello@example.com">hello@example.com <span>↗</span></a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer container">
+    <span>© 2026 Your Name</span>
+    <span>Designed & built with intention.</span>
+    <a href="#top">Back to top ↑</a>
+  </footer>
+
+  <script src="script.js"></script>
 </body>
 </html>
