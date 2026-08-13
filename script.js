@@ -1,37 +1,32 @@
-// Subtle reveal animation
-const revealItems = document.querySelectorAll(
-  ".project, .skill, .stats div, .contact-card"
-);
+{`const card = document.getElementById("card");
+const play = document.getElementById("play");
 
-const observer = new IntersectionObserver(
-  (entries) => {
-    entries.forEach((entry) => {
-      if (!entry.isIntersecting) return;
+document.addEventListener("mousemove", (e) => {
+  const x = e.clientX / window.innerWidth - 0.5;
+  const y = e.clientY / window.innerHeight - 0.5;
 
-      entry.target.animate(
-        [
-          {
-            opacity: 0,
-            transform: "translateY(18px)",
-          },
-          {
-            opacity: 1,
-            transform: "translateY(0)",
-          },
-        ],
-        {
-          duration: 650,
-          easing: "cubic-bezier(.2,.7,.2,1)",
-          fill: "forwards",
-        }
-      );
+  card.style.transform =
+    \`rotateY(\${x * 5}deg) rotateX(\${-y * 5}deg)\`;
+});
 
-      observer.unobserve(entry.target);
-    });
-  },
-  {
-    threshold: 0.08,
+document.addEventListener("mouseleave", () => {
+  card.style.transform = "rotateY(0) rotateX(0)";
+});
+
+let playing = false;
+
+play.addEventListener("click", () => {
+  playing = !playing;
+  play.textContent = playing ? "❚❚" : "▶";
+});
+
+// Fake local view counter
+const count = document.getElementById("viewCount");
+let views = Number(count.textContent.replace(",", ""));
+
+setInterval(() => {
+  if (Math.random() > 0.7) {
+    views++;
+    count.textContent = views.toLocaleString();
   }
-);
-
-revealItems.forEach((item) => observer.observe(item));
+}, 5000);`}
