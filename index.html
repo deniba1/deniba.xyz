@@ -1,66 +1,57 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Network Ping</title>
-
+    <title>deniba.xyz Latency</title>
     <style>
         body {
-            margin: 0;
             background: #111;
             color: white;
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+            font-family: monospace;
+            text-align: center;
+            padding-top: 20vh;
         }
 
         #ping {
             font-size: 64px;
-            font-weight: bold;
         }
 
-        #unit {
-            font-size: 24px;
+        #status {
             color: #aaa;
+            margin-top: 10px;
         }
     </style>
 </head>
 
 <body>
-
-    <div>
-        <span id="ping">--</span>
-        <span id="unit">ms</span>
-    </div>
+    <div id="ping">-- ms</div>
+    <div id="status">Testing deniba.xyz...</div>
 
     <script>
-        async function getPing() {
+        async function measureLatency() {
             const start = performance.now();
 
             try {
-                // Cache-busting prevents the browser from using a cached response
-                await fetch("https://www.cloudflare.com/cdn-cgi/trace?t=" + Date.now(), {
-                    method: "HEAD",
-                    cache: "no-store",
-                    mode: "no-cors"
+                await fetch("https://deniba.xyz/?ping=" + Date.now(), {
+                    method: "GET",
+                    cache: "no-store"
                 });
 
-                const ping = Math.round(performance.now() - start);
+                const latency = Math.round(performance.now() - start);
 
-                document.getElementById("ping").textContent = ping;
-            } catch (error) {
-                document.getElementById("ping").textContent = "ERR";
+                document.getElementById("ping").textContent =
+                    latency + " ms";
+
+                document.getElementById("status").textContent =
+                    "HTTP response latency";
+            } catch (e) {
+                document.getElementById("ping").textContent = "ERROR";
+                document.getElementById("status").textContent =
+                    "Request failed";
             }
         }
 
-        getPing();
-
-        // Update every second
-        setInterval(getPing, 1000);
+        measureLatency();
+        setInterval(measureLatency, 1000);
     </script>
-
 </body>
 </html>
