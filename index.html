@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Ping</title>
+
+    <style>
+        body {
+            margin: 0;
+            background: #111;
+            color: white;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #ping {
+            font-size: 64px;
+            font-weight: bold;
+        }
+
+        #unit {
+            font-size: 24px;
+            color: #aaa;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div>
+        <span id="ping">--</span>
+        <span id="unit">ms</span>
+    </div>
+
+    <script>
+        async function getPing() {
+            const start = performance.now();
+
+            try {
+                // Cache-busting prevents the browser from using a cached response
+                await fetch("https://www.cloudflare.com/cdn-cgi/trace?t=" + Date.now(), {
+                    method: "HEAD",
+                    cache: "no-store",
+                    mode: "no-cors"
+                });
+
+                const ping = Math.round(performance.now() - start);
+
+                document.getElementById("ping").textContent = ping;
+            } catch (error) {
+                document.getElementById("ping").textContent = "ERR";
+            }
+        }
+
+        getPing();
+
+        // Update every second
+        setInterval(getPing, 1000);
+    </script>
+
+</body>
+</html>
