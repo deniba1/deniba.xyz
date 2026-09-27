@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roblox Alt Checker</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --border: #2a2f3a;
+    --text: #e8eaf0; --muted: #8b93a5; --accent: #4f8cff;
+    --good: #2fbf71; --bad: #ff5c5c; --warn: #f5a623;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f4f5f8; --panel: #ffffff; --panel2: #f0f2f6; --border: #dde1e8;
+      --text: #171a21; --muted: #5f6674; color-scheme: light;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 960px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  form { display: flex; gap: 8px; margin-bottom: 20px; }
+  input[type=text] {
+    flex: 1; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--panel); color: var(--text); font-size: 16px; outline: none;
+  }
+  input[type=text]:focus { border-color: var(--accent); }
+  button {
+    padding: 12px 20px; border-radius: 10px; border: 0; background: var(--accent);
+    color: #fff; font-size: 15px; font-weight: 600; cursor: pointer;
+  }
+  button:disabled { opacity: .6; cursor: wait; }
+  .msg { padding: 14px 16px; border-radius: 10px; background: var(--panel); border: 1px solid var(--border); }
+  .msg.err { border-color: var(--bad); color: var(--bad); }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+  .profile { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+  .profile img { width: 96px; height: 96px; border-radius: 14px; background: var(--panel2); flex: none; }
+  .profile .who { flex: 1; min-width: 200px; }
+  .profile .who h2 { margin: 0; font-size: 22px; }
+  .profile .who .handle { color: var(--muted); }
+  .profile .who .meta { margin-top: 6px; color: var(--muted); font-size: 14px; }
+  .tag { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); margin-left: 6px; vertical-align: middle; color: var(--muted); }
+  .tag.verified { border-color: var(--accent); color: var(--accent); }
+  .tag.banned { border-color: var(--bad); color: var(--bad); }
+  .verdict { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+  .ring { position: relative; width: 120px; height: 120px; flex: none; }
+  .ring svg { transform: rotate(-90deg); }
+  .ring .num { position: absolute; inset: 0; display: grid; place-items: center; font-size: 30px; font-weight: 700; }
+  .ring .num small { display: block; font-size: 11px; color: var(--muted); font-weight: 500; text-align: center; }
+  .verdict .label { font-size: 24px; font-weight: 700; }
+  .verdict .summary { color: var(--muted); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .stat { background: var(--panel2); border-radius: 10px; padding: 12px 14px; }
+  .stat .k { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .stat .v { font-size: 20px; font-weight: 700; margin-top: 2px; }
+  .stat .d { font-size: 12px; color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  h3 { margin: 0 0 12px; font-size: 16px; }
+  .signals { display: flex; flex-direction: column; gap: 8px; }
+  .sig { display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; background: var(--panel2); border-radius: 10px; }
+  .pts { flex: none; min-width: 44px; text-align: center; font-weight: 700; padding: 2px 6px; border-radius: 6px; font-size: 13px; }
+  .pts.alt { background: color-mix(in srgb, var(--bad) 18%, transparent); color: var(--bad); }
+  .pts.main { background: color-mix(in srgb, var(--good) 18%, transparent); color: var(--good); }
+  .pts.zero { background: var(--border); color: var(--muted); }
+  .sig .t { font-weight: 600; }
+  .sig .dt { color: var(--muted); font-size: 14px; }
+  .notes { color: var(--muted); font-size: 13px; }
+  .notes li { margin: 2px 0; }
+  details summary { cursor: pointer; color: var(--muted); }
+  pre { background: var(--panel2); padding: 12px; border-radius: 10px; overflow-x: auto; font-size: 12px; }
+  .recent { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+  .recent a { color: var(--muted); font-size: 13px; text-decoration: none; border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; }
+  .recent a:hover { color: var(--text); border-color: var(--accent); }
+  footer { color: var(--muted); font-size: 13px; margin-top: 32px; }
+  a { color: var(--accent); }
+  .about { color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Roblox Alt Checker</h1>
+  <p class="sub">Paste a username or user ID. Public profile data is scored to estimate whether it's an alt.</p>
+
+  <form id="form" autocomplete="off">
+    <input type="text" id="q" placeholder="Username or user ID (e.g. builderman or 156)" maxlength="40" required>
+    <button id="go" type="submit">Check</button>
+  </form>
+  <div class="recent" id="recent"></div>
+
+  <div id="out"></div>
+
+  <footer>
+    <p class="about">The score is a heuristic built from public signals only: account age, friends, followers, badges, favorites,
+    inventory, groups, avatar, and naming patterns. It can't see Robux, IPs, or private data, so treat it as a hint, not proof.</p>
+    <p class="about" id="badgeNote"></p>
+  </footer>
+</main>
+
+<script>
+// ====================================================================
+// CONFIG: where the checker backend lives.
+//   GitHub Pages + Supabase: paste your Edge Function URL, e.g.
+//     "https://abcdefghijklmnop.supabase.co/functions/v1/check"
+//   Running server.py locally / on Render / Docker: leave it empty ("")
+//   and the page talks to /api on the same host.
+// ====================================================================
+const API_BASE = "";
+
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const apiUrl = (q, extra) => API_BASE
+    ? `${API_BASE}?q=${encodeURIComponent(q)}${extra}`
+    : `/api/lookup?q=${encodeURIComponent(q)}${extra}`;
+  const healthUrl = API_BASE ? `${API_BASE}?health=1` : '/api/health';
+  const out = $('#out'), form = $('#form'), q = $('#q'), go = $('#go');
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const n = (v) => v == null ? '—' : Number(v).toLocaleString();
+  const plus = (o) => o ? n(o.count) + (o.truncated ? '+' : '') : '—';
+
+  // Recent lookups (per browser)
+  function recent() { try { return JSON.parse(localStorage.getItem('recent') || '[]'); } catch { return []; } }
+  function remember(name) {
+    const list = [name, ...recent().filter(x => x.toLowerCase() !== name.toLowerCase())].slice(0, 8);
+    try { localStorage.setItem('recent', JSON.stringify(list)); } catch {}
+    renderRecent();
+  }
+  function renderRecent() {
+    $('#recent').innerHTML = recent().map(x => `<a href="#${encodeURIComponent(x)}">${esc(x)}</a>`).join('');
+  }
+
+  function ageText(days) {
+    if (days == null) return '';
+    if (days < 1) return 'today';
+    if (days < 60) return `${days} day${days === 1 ? '' : 's'} old`;
+    if (days < 730) return `${Math.floor(days / 30)} months old`;
+    return `${(days / 365).toFixed(1)} years old`;
+  }
+
+  function ringColor(score) {
+    return score >= 70 ? 'var(--bad)' : score >= 50 ? 'var(--warn)' : score >= 30 ? 'var(--accent)' : 'var(--good)';
+  }
+
+  function render(r) {
+    const u = r.user, s = r.stats;
+    const pb = s.playerBadges, col = s.collectibles, inv = s.inventoryVisible;
+    const circ = 2 * Math.PI * 52;
+    const dash = circ * (r.score / 100);
+
+    const stats = [
+      ['Friends', n(s.friends)],
+      ['Followers', n(s.followers)],
+      ['Following', n(s.following)],
+      ['Player badges', pb ? n(pb.count) + (pb.truncated ? '+' : '') : 'n/a', pb?.sample?.join(', ')],
+      ['Roblox badges', s.robloxBadges ? s.robloxBadges.length : '—', s.robloxBadges?.join(', ')],
+      ['Favorites', plus(s.favorites), s.favorites?.sample?.join(', ')],
+      ['Groups', s.groups ? n(s.groups.count) : '—', s.groups?.sample?.join(', ')],
+      ['Limited items', inv === false ? 'private' : plus(col), col && col.count ? `RAP ${n(col.rap)}` : ''],
+      ['Paid wearables', inv === false ? 'private' : s.wearables ? n(s.wearables.paid) + (s.wearables.truncated ? '+' : '') : '—', s.wearables ? `${n(s.wearables.free)} free excluded` : ''],
+      ['Created games', s.createdGames ? n(s.createdGames.count) : '—', s.createdGames?.count ? `${n(s.createdGames.visits)} visits · ${s.createdGames.sample.join(', ')}` : ''],
+      ['Avatar', s.avatar ? `${s.avatar.type || '?'} · ${s.avatar.assetCount} items` : '—'],
+      ['Past names', s.previousNames ? s.previousNames.length : '—', s.previousNames?.join(', ')],
+      ['Status', s.presence ? s.presence.status : '—', s.presence?.lastLocation || ''],
+    ];
+
+    out.innerHTML = `
+      <div class="card profile">
+        <img src="${esc(u.avatarUrl || '')}" alt="" onerror="this.style.visibility='hidden'">
+        <div class="who">
+          <h2>${esc(u.displayName)}
+            ${u.hasVerifiedBadge ? '<span class="tag verified">verified</span>' : ''}
+            ${u.isBanned ? '<span class="tag banned">banned</span>' : ''}
+          </h2>
+          <div class="handle">@${esc(u.name)} · ID ${u.id} · <a href="${esc(u.profileUrl)}" target="_blank" rel="noopener">profile ↗</a></div>
+          <div class="meta">Created ${esc((u.created || '').slice(0, 10))} · ${ageText(u.accountAgeDays)}${r.cached ? ' · cached result' : ''}</div>
+          ${u.description ? `<div class="meta">“${esc(u.description.slice(0, 220))}${u.description.length > 220 ? '…' : ''}”</div>` : ''}
+        </div>
+      </div>
+
+      <div class="card verdict">
+        <div class="ring">
+          <svg width="120" height="120" viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="52" fill="none" stroke="var(--border)" stroke-width="10"/>
+            <circle cx="60" cy="60" r="52" fill="none" stroke="${ringColor(r.score)}" stroke-width="10"
+              stroke-linecap="round" stroke-dasharray="${dash} ${circ - dash}"/>
+          </svg>
+          <div class="num">${r.score}<small>alt score</small></div>
+        </div>
+        <div>
+          <div class="label" style="color:${ringColor(r.score)}">${esc(r.verdict)}</div>
+          <div class="summary">${esc(r.summary)}</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Stats</h3>
+        <div class="grid">
+          ${stats.map(([k, v, d]) => `<div class="stat"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div>${d ? `<div class="d" title="${esc(d)}">${esc(d)}</div>` : ''}</div>`).join('')}
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Why this score</h3>
+        <div class="signals">
+          ${r.signals.map(sg => `
+            <div class="sig">
+              <span class="pts ${sg.points > 0 ? 'alt' : sg.points < 0 ? 'main' : 'zero'}">${sg.points > 0 ? '+' : ''}${sg.points}</span>
+              <div><div class="t">${esc(sg.label)}</div><div class="dt">${esc(sg.detail)}</div></div>
+            </div>`).join('')}
+        </div>
+        <p class="notes" style="margin:12px 0 0">Positive points push toward “alt”, negative toward “main”. Score starts at 35.</p>
+      </div>
+
+      ${r.notes.length ? `<div class="card"><h3>Not checked</h3><ul class="notes">${r.notes.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+        ${r.notes.some(x => x.includes('429')) ? `<button type="button" id="recheck" style="margin-top:8px">Re-check now</button>` : ''}</div>` : ''}
+
+      <details class="card"><summary>Raw JSON</summary><pre>${esc(JSON.stringify(r, null, 2))}</pre></details>
+    `;
+  }
+
+  async function check(name, fresh) {
+    name = name.trim();
+    if (!name) return;
+    q.value = name;
+    go.disabled = true;
+    out.innerHTML = `<div class="msg">Checking <b>${esc(name)}</b>… this hits a dozen Roblox endpoints, give it a few seconds.</div>`;
+    try {
+      const res = await fetch(apiUrl(name, fresh ? '&fresh=1' : ''));
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      render(data);
+      remember(data.user.name);
+      document.getElementById('recheck')?.addEventListener('click', () => check(data.user.name, true));
+      document.title = `${data.user.name} · ${data.verdict} · Roblox Alt Checker`;
+    } catch (e) {
+      out.innerHTML = `<div class="msg err">${esc(e.message)}</div>`;
+    } finally {
+      go.disabled = false;
+    }
+  }
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const v = q.value.trim();
+    if (v) location.hash = encodeURIComponent(v);
+    if (decodeURIComponent(location.hash.slice(1)) === v) check(v);
+  });
+  window.addEventListener('hashchange', () => check(decodeURIComponent(location.hash.slice(1))));
+
+  fetch(healthUrl).then(r => r.json()).then(h => {
+    $('#badgeNote').textContent = h.badgeCheck
+      ? 'Player-badge check is enabled on this server.'
+      : 'Player-badge check is off on this server (it needs a Roblox session cookie). Everything else still works.';
+  }).catch(() => {});
+
+  renderRecent();
+  if (location.hash.length > 1) check(decodeURIComponent(location.hash.slice(1)));
+  else q.focus();
+})();
+</script>
+</body>
+</html>
