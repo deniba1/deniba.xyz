@@ -1,0 +1,4 @@
+# Only the bits that matter for this project. `supabase link` fills in the rest.
+[functions.check]
+# The checker is a public read-only API; the page calls it without a login.
+verify_jwt = false
