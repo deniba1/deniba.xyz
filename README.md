@@ -1,99 +1,187 @@
 # Roblox Alt Checker
 
-A web app that looks up a Roblox username or user ID, pulls the account's
-public data, and scores how likely it is to be an alt account.
+A website that looks up a Roblox username or user ID, pulls the account's
+public data, and scores how likely it is to be an alt account. It runs as a
+freemium service: guests and free accounts get a daily allowance and see ads,
+and a paid Pro plan lifts the limit, removes the ads and unlocks bulk checks.
 
 It checks: account age, friends, followers/following, Roblox badges, player
 badges (optional), favorite games, inventory (limited items + paid wearables),
 groups, created games, avatar customization, username history, and naming
-patterns. Every signal is shown with the points it added or removed, so you can
-see *why* an account got its score.
+patterns. Every signal is shown with the points it added or removed.
 
-Free and off-sale-at-zero items are excluded from the wardrobe count (only
-items with a real price, resale value, or Limited status count), and the
-auto-generated "username's Place" places are excluded from created games.
+## Plans
+
+|                          | Guest | Free account | Pro            |
+|--------------------------|-------|--------------|----------------|
+| Lookups per day          | 3     | 10           | 500            |
+| Ads                      | yes   | yes          | no             |
+| Bulk check (20 names)    | –     | –            | yes            |
+| Refresh past the cache   | –     | –            | yes            |
+
+The limits are secrets on the `check` function (`GUEST_DAILY_LIMIT`,
+`FREE_DAILY_LIMIT`, `PRO_DAILY_LIMIT`), and the Pro price is whatever the Stripe
+price says. The pricing page reads both from the server, so there is nothing to
+keep in sync by hand. A cached result is free, a failed lookup is given back,
+and allowances reset at 00:00 UTC.
 
 ## Layout
 
 ```
-docs/index.html                     the website (GitHub Pages serves this folder)
-supabase/functions/check/index.ts   the backend: a Supabase Edge Function (Deno)
-supabase/config.toml                marks the function as public (no login needed)
-checker.py + server.py              same backend in Python, for running it yourself
+docs/                               the website (GitHub Pages serves this folder)
+  index.html                        the checker
+  pricing.html, account.html        plans; sign-in, plan, billing, delete account
+  terms.html, privacy.html, refunds.html
+  assets/config.js                  ← the one file you edit: keys, ad IDs, legal details
+  assets/app.js, assets/style.css   shared session/plan/ads code and styles
+supabase/migrations/*.sql           profiles + usage tables, quota functions
+supabase/functions/check/index.ts   lookups, accounts, daily quotas (Deno)
+supabase/functions/billing/index.ts Stripe checkout, portal, webhook, account deletion
+supabase/config.t oml                both functions verify the caller themselves
+checker.py + server.py              the lookup backend in Python, for self-hosting
 Dockerfile                          container for the Python version
 ```
 
-Why a backend at all? Roblox's APIs don't send CORS headers, so a browser page
-on GitHub Pages can't call them directly. The Edge Function does the Roblox
-calls and returns one JSON result. The TypeScript and Python versions are
-line-for-line ports of each other; use whichever host you like.
+Roblox's APIs send no CORS headers, so the browser can't call them; the `check`
+function does it and returns one JSON result. The Roblox and scoring code in
+`index.ts` and `checker.py` are line-for-line ports: change both. Accounts,
+quotas and billing exist only in the Supabase version.
 
-## Deploy: GitHub Pages + Supabase (recommended)
+## Going live
 
-### 1. Push to GitHub
+Do it in this order. Use Stripe **test mode** until the last step.
 
-```bash
-cd roblox-checker
-git remote add origin git@github.com:<you>/roblox-checker.git   # or the https URL
-git push -u origin main
-```
+### 1. Supabase: database
 
-### 2. Deploy the Edge Function to Supabase
+Dashboard → **SQL Editor** → paste `supabase/migrations/20260929000000_freemium.sql`
+→ Run. (Or `supabase db push`.) It is safe to run twice.
 
-Option A, from the dashboard (no CLI): open your project → **Edge Functions** →
-**Deploy a new function** → **Via Editor**. Name it `check`, paste the contents of
-`supabase/functions/check/index.ts`, and deploy. Then open the function's
-settings and turn **Verify JWT** off (the page calls it without logging in).
+### 2. Supabase: sign-in settings
 
-Option B, with the Supabase CLI:
+**Authentication → URL Configuration**: set *Site URL* to your site
+(`https://checker.example.com`) and add `https://checker.example.com/**` to
+*Redirect URLs*.
+
+**Authentication → Emails → SMTP**: the built-in mailer only sends a couple of
+emails an hour. Before launch, plug in your own SMTP (Resend, Postmark, SES…)
+or sign-ups will stall waiting for confirmation emails.
+
+Optional: **Authentication → Providers → Google**, then set `googleLogin: true`
+in `config.js`. Optional but recommended: **Attack Protection → CAPTCHA**.
+
+### 3. Supabase: functions
 
 ```bash
 supabase login
 supabase link --project-ref <your-project-ref>
 supabase functions deploy check
+supabase functions deploy billing
 ```
 
-`supabase/config.toml` already sets `verify_jwt = false` for it.
+No CLI? Dashboard → **Edge Functions** → **Deploy a new function** → **Via
+Editor**; create `check` and `billing`, paste each `index.ts`, and turn
+**Verify JWT** off for both.
 
-Either way you end up with a URL like
-`https://<project-ref>.supabase.co/functions/v1/check`. Test it in the browser:
-`.../check?q=builderman` should return JSON.
+### 4. Stripe
 
-Optional secrets (dashboard → Edge Functions → Secrets, or `supabase secrets set`):
+1. **Product catalog → Add product**: "Pro", recurring price (monthly or
+   yearly). Copy the price ID (`price_…`).
+2. **Developers → API keys**: copy the secret key (`sk_test_…`).
+3. **Developers → Webhooks → Add endpoint**:
+   `https://<project-ref>.supabase.co/functions/v1/billing/webhook`, events
+   `checkout.session.completed`, `customer.subscription.created`,
+   `customer.subscription.updated`, `customer.subscription.deleted`.
+   Copy the signing secret (`whsec_…`).
+4. **Settings → Billing → Customer portal**: switch it on and allow customers
+   to cancel subscriptions and update payment methods. "Manage billing" on the
+   account page opens this.
+5. **Settings → Payment methods**: enable what you want to accept (cards, Apple
+   Pay, Google Pay, PayPal, Link…). Checkout offers whatever is enabled here.
+6. **Settings → Business → Public details**: add your support email and the
+   URLs of the Terms, Privacy and Refund pages.
 
-| Secret               | Default | What it does                                                 |
-|----------------------|---------|--------------------------------------------------------------|
-| `ROBLOX_COOKIE`      | *(off)* | `.ROBLOSECURITY` of a spare account; enables the badge check |
-| `CACHE_TTL`          | `600`   | Seconds a lookup is cached                                   |
-| `RATE_LIMIT_PER_MIN` | `20`    | Lookups allowed per visitor IP per minute                    |
-| `ALLOWED_ORIGIN`     | `*`     | Lock CORS to your site, e.g. `https://checker.example.com`   |
+### 5. Secrets
 
-### 3. Point the page at the function
+Dashboard → **Edge Functions → Secrets**, or `supabase secrets set NAME=value`.
 
-Open `docs/index.html`, find the `API_BASE` line near the top of the script, and
-paste your function URL:
+| Secret                  | Needed   | What it does                                                  |
+|-------------------------|----------|---------------------------------------------------------------|
+| `STRIPE_SECRET_KEY`     | yes      | `sk_test_…` / `sk_live_…`                                     |
+| `STRIPE_PRICE_ID`       | yes      | `price_…` of the Pro price                                    |
+| `STRIPE_WEBHOOK_SECRET` | yes      | `whsec_…` of the webhook endpoint                             |
+| `SITE_URL`              | yes      | Where the site lives; Stripe sends people back here           |
+| `ALLOWED_ORIGIN`        | advised  | Lock CORS to your site, e.g. `https://checker.example.com`    |
+| `GUEST_DAILY_LIMIT`     | no (3)   | Lookups a day without an account, per IP                      |
+| `FREE_DAILY_LIMIT`      | no (10)  | Lookups a day on a free account                               |
+| `PRO_DAILY_LIMIT`       | no (500) | Lookups a day on Pro                                          |
+| `STRIPE_AUTOMATIC_TAX`  | no       | `1` to let Stripe Tax add tax at checkout (set Stripe Tax up first) |
+| `ROBLOX_COOKIE`         | no       | `.ROBLOSECURITY` of a spare account; enables the badge check  |
+| `CACHE_TTL`             | no (600) | Seconds a lookup is cached                                    |
+| `RATE_LIMIT_PER_MIN`    | no (20)  | Burst limit per IP per minute                                 |
+| `IP_HASH_SALT`          | no       | Salt for the guest IP hash (defaults to the service key)      |
 
-```js
-const API_BASE = "https://<project-ref>.supabase.co/functions/v1/check";
+`SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are provided
+by Supabase automatically.
+
+### 6. `docs/assets/config.js`
+
+Fill in the Supabase URL and anon key (**Project Settings → API**), and your
+name or company, contact email and governing law. Those three are printed in
+the Terms, Privacy Policy and Refund Policy; until they're set the pages show
+an orange "[… not set]" marker. Read the three policies through and adjust them
+to what you actually intend to do, the refund windows especially.
+
+### 7. GitHub Pages
+
+```bash
+git remote add origin git@github.com:<you>/roblox-checker.git
+git push -u origin main
 ```
 
-Commit and push.
+Repo → **Settings → Pages** → *Deploy from a branch* → `main`, folder `/docs`.
+Enter your custom domain there, add the DNS record GitHub asks for, and tick
+*Enforce HTTPS*. Every later `git push` redeploys the site; the functions only
+change when you redeploy them.
 
-### 4. Turn on GitHub Pages
+### 8. Test, then switch Stripe to live
 
-Repo → **Settings** → **Pages** → Source: *Deploy from a branch* → Branch:
-`main`, folder: `/docs` → Save. After a minute the site is live at
-`https://<you>.github.io/roblox-checker/`.
+Create an account, open Pricing, and pay with card `4242 4242 4242 4242` (any
+future date, any CVC). The account page should flip to Pro within seconds, the
+ads should disappear, and "Manage billing" should let you cancel. Then create
+the product, price, webhook and portal settings again in live mode and replace
+the three `STRIPE_*` secrets with the live values.
 
-**Custom domain:** on the same Pages settings screen enter your domain and save.
-GitHub commits a `CNAME` file into `docs/`. At your DNS provider add a `CNAME`
-record pointing your subdomain (e.g. `checker`) to `<you>.github.io`, or for an
-apex domain the four `A` records GitHub lists. Tick *Enforce HTTPS* once the
-certificate is issued. If you set `ALLOWED_ORIGIN` on the function, use this
-domain.
+### 9. Google AdSense
 
-Every later `git push` redeploys the page automatically. The Edge Function only
-changes when you redeploy it.
+1. Apply at adsense.google.com with your domain. Approval needs the site to be
+   live with real content, and a custom domain (not `<you>.github.io/repo`).
+2. Once approved, create two **Display** ad units and put the publisher ID
+   (`ca-pub-…`) and the two unit IDs into `config.js`.
+3. Create `docs/ads.txt` with the line AdSense gives you
+   (`google.com, pub-…, DIRECT, f08c47fec0942fa0`).
+4. **Privacy & messaging** in AdSense: create the European consent message.
+   Google requires a certified consent prompt for visitors from the EEA, UK and
+   Switzerland; this one is served by the ad script, no code needed.
+
+Ads only load for guests and free accounts, only on the checker page, and the
+ad script is never requested for Pro. On `localhost` a dashed placeholder marks
+where each ad will sit.
+
+## How the pieces fit
+
+- **Who is calling.** The page sends the Supabase access token with each
+  lookup. `check` asks Supabase Auth who it belongs to and reads `plan` from
+  `profiles`. No token means a guest, counted by a salted hash of the IP.
+- **Quotas.** `consume_lookup()` in Postgres takes one lookup atomically, so
+  parallel requests can't overshoot. The `usage` table holds counts only, never
+  which usernames were looked up, and sweeps itself after two days.
+- **Becoming Pro.** `billing/checkout` creates a Stripe Checkout session. Stripe
+  calls `billing/webhook`, which verifies the signature, re-reads the
+  subscription from Stripe and writes `plan` to `profiles`. Browsers can read
+  their own profile row but never write it.
+- **Staying in sync.** Cancellations, failed payments and renewals arrive as
+  `customer.subscription.*` events. As a backstop, `check` treats Pro as lapsed
+  three days after the paid period ends if no renewal was recorded.
 
 ## Run it yourself instead (Python, no dependencies)
 
@@ -101,9 +189,10 @@ changes when you redeploy it.
 python3 server.py            # http://localhost:8080
 ```
 
-Leave `API_BASE` empty in `docs/index.html` and the page uses `/api` on the same
-host. The same environment variables as above apply, plus `PORT`. Works as-is on
-Render (start command `python server.py`), Railway, Fly.io, or any Docker host
+With `config.js` left blank the site runs in self-hosted mode: `/api` on the
+same host, no accounts, no limits beyond the burst limiter, no ads, everything
+unlocked. `ROBLOX_COOKIE`, `CACHE_TTL`, `RATE_LIMIT_PER_MIN` and `PORT` apply.
+Works on any Docker host
 (`docker build -t roblox-checker . && docker run -p 8080:8080 roblox-checker`).
 
 ## About the player-badge check
@@ -137,7 +226,10 @@ look like an alt; a well-dressed alt with friends will look like a main.
 
 ## API
 
-`GET <function-url>?q=<username or id>` (or `/api/lookup?q=` on the Python
-server) returns JSON with `user`, `stats`, `score`, `verdict`, `signals`, and
-`notes` (anything that couldn't be checked). Add `&fresh=1` to bypass the cache.
-`?health=1` (or `/api/health`) reports whether the badge check is enabled.
+`GET <project>/functions/v1/check?q=<username or id>` (or `/api/lookup?q=` on
+the Python server) returns JSON with `user`, `stats`, `score`, `verdict`,
+`signals`, `notes` (anything that couldn't be checked) and, when accounts are
+on, `quota`. `&fresh=1` skips the cache (Pro). `?quota=1` returns the caller's
+plan and allowance; `?health=1` (or `/api/health`) reports whether the badge
+check is enabled. When the allowance is used up the reply is HTTP 429 with
+`code: "quota"`.
