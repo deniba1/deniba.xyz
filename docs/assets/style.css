@@ -83,6 +83,8 @@ button:disabled { opacity: .6; cursor: wait; filter: none; }
 .btn.danger, button.danger { background: transparent; color: var(--bad); border-color: var(--bad); }
 .btn.small, button.small { padding: 7px 12px; font-size: 14px; border-radius: 8px; }
 .btn.block, button.block { display: block; width: 100%; }
+.btn.with-icon, button.with-icon { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.with-icon svg { flex: none; }
 button.link { background: none; border: 0; padding: 0; color: var(--accent); font-weight: 500; text-decoration: underline; }
 input[type=text], input[type=email], input[type=password], textarea {
   width: 100%; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--border);
