@@ -310,7 +310,8 @@ async function deleteAccount(user: User): Promise<Json> {
       if (!["canceled", "incomplete_expired"].includes(s.status)) await stripe("DELETE", `subscriptions/${s.id}`);
     }
   }
-  await db(`usage?subject=eq.${encodeURIComponent(`u:${user.id}`)}`, { method: "DELETE" });
+  // Lookup and deep-check counters.
+  await db(`usage?subject=in.(${encodeURIComponent(`"u:${user.id}","deep:u:${user.id}"`)})`, { method: "DELETE" });
   // Deleting the auth user cascades to the profile row.
   const resp = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${user.id}`, {
     method: "DELETE",

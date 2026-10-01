@@ -15,6 +15,7 @@ patterns. Every signal is shown with the points it added or removed.
 |                          | Guest | Free account | Pro            |
 |--------------------------|-------|--------------|----------------|
 | Lookups per day          | 3     | 10           | 500            |
+| Deep checks per day      | –     | 1            | 10             |
 | Ads                      | yes   | yes          | no             |
 | Bulk check (20 names)    | –     | –            | yes            |
 | Refresh past the cache   | –     | –            | yes            |
@@ -133,6 +134,11 @@ Dashboard → **Edge Functions → Secrets**, or `supabase secrets set NAME=valu
 | `GUEST_DAILY_LIMIT`     | no (3)   | Lookups a day without an account, per IP                      |
 | `FREE_DAILY_LIMIT`      | no (10)  | Lookups a day on a free account                               |
 | `PRO_DAILY_LIMIT`       | no (500) | Lookups a day on Pro                                          |
+| `DEEP_FREE_DAILY_LIMIT` | no (1)   | Deep checks a day on a free account                           |
+| `DEEP_PRO_DAILY_LIMIT`  | no (10)  | Deep checks a day on Pro                                      |
+| `DEEP_GUEST_DAILY_LIMIT`| no (0)   | Deep checks a day without an account                          |
+| `DEEP_GLOBAL_PER_MIN`   | no (3)   | Deep checks a minute across the whole site, Pro included      |
+| `DEEP_SAMPLE`           | no (20)  | Friends profiled one by one in a deep check                   |
 | `STRIPE_AUTOMATIC_TAX`  | no       | `1` to let Stripe Tax add tax at checkout (set Stripe Tax up first) |
 | `ROBLOX_COOKIE`         | no       | `.ROBLOSECURITY` of a spare account; enables the badge check  |
 | `CACHE_TTL`             | no (600) | Seconds a lookup is cached                                    |
@@ -213,7 +219,7 @@ content changes, bump its `<lastmod>` in the sitemap.
 ### Changing the shared files
 
 The pages load `style.css`, `theme.js`, `config.js` and `app.js` with a version
-on the end (`assets/style.css?v=7`). Browsers keep those files for hours, so
+on the end (`assets/style.css?v=8`). Browsers keep those files for hours, so
 whenever you change one of them, raise the number in every page in `docs/`
 (search for `?v=`). Otherwise visitors get the new page with the old styles or
 settings until their cache expires.
@@ -285,12 +291,48 @@ the username or description literally mentioning an alt. The weights live in
 This is a heuristic on public data only. A quiet, private, new-ish main will
 look like an alt; a well-dressed alt with friends will look like a main.
 
+## Badge timing
+
+Game badges only count if they were earned at a human pace. The lookup reads
+each badge's award date (`/v1/users/{id}/badges/awarded-dates`, 100 at a time)
+and marks any run of 10 or more within 10 minutes as farmed, the signature of
+"badge walk" games. Farmed badges are left out of the badge count, and when
+they make up most of an account's badges it adds a "Badges look farmed" signal.
+Badges spread over 15 or more different days count toward "main". Like the
+badge list itself, this needs `ROBLOX_COOKIE`.
+
+## Deep check
+
+`?deep=1` runs a normal lookup and then looks at the account's friends:
+
+1. the whole friends list (IDs only);
+2. names and banned status for up to 200 of them, in batches;
+3. for a spread of 20 (`DEEP_SAMPLE`): friend count, official badges, groups,
+   and the first 100 of their own friends, to see who knows whom.
+
+Roblox allows about 30 profile reads a minute, so friends' creation dates are
+not fetched: they are estimated from the user ID, which Roblox hands out in
+order. `ID_ANCHORS` in both backends maps IDs to dates (sampled October 2026;
+add a row now and then so new accounts keep being dated well).
+
+The web signals (friends mostly new, made the same week as the account, empty
+profiles, strangers to each other, many banned, near-identical usernames, or
+the opposite of each) move the normal score to give the deep score. The page
+draws the profiled friends as a web: the account in the middle, a line between
+any two friends who are friends with each other.
+
+Deep checks have their own daily allowance and their own site-wide brake
+(`DEEP_GLOBAL_PER_MIN`), which applies to Pro too because Roblox's limits on
+reading friends lists are per server, not per customer. A deep check of an
+account with no visible friends is not counted.
+
 ## API
 
 `GET <project>/functions/v1/check?q=<username or id>` (or `/api/lookup?q=` on
 the Python server) returns JSON with `user`, `stats`, `score`, `verdict`,
 `signals`, `notes` (anything that couldn't be checked) and, when accounts are
-on, `quota`. `&fresh=1` skips the cache (Pro). `?quota=1` returns the caller's
+on, `quota`. `&fresh=1` skips the cache (Pro). `&deep=1` adds `deep` (the friends analysis)
+and `deepQuota`; on the Python server use `/api/deep?q=`. `?quota=1` returns the caller's
 plan and allowance; `?health=1` (or `/api/health`) reports whether the badge
 check is enabled. When the allowance is used up the reply is HTTP 429 with
 `code: "quota"`.

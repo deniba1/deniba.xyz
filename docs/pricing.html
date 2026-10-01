@@ -20,8 +20,8 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon.png" type="image/png" sizes="96x96">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="assets/style.css?v=7">
-<script src="assets/theme.js?v=7"></script>
+<link rel="stylesheet" href="assets/style.css?v=8">
+<script src="assets/theme.js?v=8"></script>
 </head>
 <body>
 <header class="site-header">
@@ -56,6 +56,7 @@
       <ul>
         <li><b id="limFree">10</b> lookups a day with a free account</li>
         <li><span id="limGuest">3</span> a day without signing up</li>
+        <li><b id="deepFree">1</b> deep check a day: the account's friends, analysed</li>
         <li>Full score breakdown on every lookup</li>
         <li class="no">Shows ads</li>
         <li class="no">No bulk check or instant refresh</li>
@@ -68,6 +69,7 @@
       <div class="price" id="proPrice">&nbsp;</div>
       <ul>
         <li><b id="limPro">500</b> lookups a day</li>
+        <li><b id="deepPro">10</b> deep checks a day</li>
         <li>No ads</li>
         <li>Bulk check: up to 20 accounts in one go</li>
         <li>Refresh any result instantly, skipping the cache</li>
@@ -82,6 +84,11 @@
   <section class="card faq">
     <h2>Questions</h2>
     <dl>
+      <dt>What is a deep check?</dt>
+      <dd>A normal lookup scores the account's own profile. A deep check also reads its friends list and looks at a spread
+        of the friends on it: how old their accounts are, whether their profiles have anything on them, and whether they
+        are friends with each other. It draws the result as a web and adjusts the score. It needs an account, and a deep
+        check of an account with no visible friends isn't counted.</dd>
       <dt>What counts as a lookup?</dt>
       <dd>Each account you check that isn't already in the short-term cache. Opening the same result again within a few minutes is free, and a lookup that fails isn't counted (up to ten a day). Allowances reset at 00:00 UTC.</dd>
       <dt>Can a free allowance run out early?</dt>
@@ -113,8 +120,8 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<script src="assets/config.js?v=7"></script>
-<script src="assets/app.js?v=7"></script>
+<script src="assets/config.js?v=8"></script>
+<script src="assets/app.js?v=8"></script>
 <script>
 (async () => {
   const { esc } = App;
@@ -149,6 +156,10 @@
     $('#limGuest').textContent = qt.limits.guest;
     $('#limFree').textContent = qt.limits.free;
     $('#limPro').textContent = qt.limits.pro;
+    if (qt.deepLimits) {
+      $('#deepFree').textContent = qt.deepLimits.free;
+      $('#deepPro').textContent = qt.deepLimits.pro;
+    }
   }).catch(() => {});
 
   if (state.user) {

@@ -9,8 +9,8 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon.png" type="image/png" sizes="96x96">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="assets/style.css?v=7">
-<script src="assets/theme.js?v=7"></script>
+<link rel="stylesheet" href="assets/style.css?v=8">
+<script src="assets/theme.js?v=8"></script>
 </head>
 <body>
 <header class="site-header">
@@ -90,7 +90,8 @@
       <dl class="kv">
         <dt>Email</dt><dd id="accEmail"></dd>
         <dt>Plan</dt><dd id="accPlan"></dd>
-        <dt>Today</dt><dd><span id="accUsage">…</span><div class="meter"><i id="accMeter" style="width:0"></i></div></dd>
+        <dt>Today</dt><dd><span id="accUsage">…</span><div class="meter"><i id="accMeter" style="width:0"></i></div>
+          <div class="muted small" id="accDeep" style="margin-top:6px"></div></dd>
       </dl>
     </div>
     <div class="card">
@@ -135,8 +136,8 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<script src="assets/config.js?v=7"></script>
-<script src="assets/app.js?v=7"></script>
+<script src="assets/config.js?v=8"></script>
+<script src="assets/app.js?v=8"></script>
 <script>
 (async () => {
   const { esc, sb, cfg } = App;
@@ -270,6 +271,7 @@
     App.call('check?quota=1').then((qt) => {
       $('#accUsage').textContent = `${qt.used.toLocaleString()} of ${qt.limit.toLocaleString()} lookups used · resets 00:00 UTC`;
       $('#accMeter').style.width = `${Math.min(100, (qt.used / qt.limit) * 100)}%`;
+      if (qt.deep) $('#accDeep').textContent = `${qt.deep.used.toLocaleString()} of ${qt.deep.limit.toLocaleString()} deep checks used`;
     }).catch(() => { $('#accUsage').textContent = 'Usage is unavailable right now.'; });
   }
 

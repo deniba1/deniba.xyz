@@ -8,6 +8,7 @@ Environment variables:
   ROBLOX_COOKIE        optional .ROBLOSECURITY value; enables the player-badge check
   CACHE_TTL            seconds to cache a lookup (default 600)
   RATE_LIMIT_PER_MIN   lookups allowed per client IP per minute (default 20)
+  DEEP_SAMPLE          friends profiled one by one in a deep check (default 20)
 """
 import json
 import os
@@ -24,6 +25,7 @@ from datetime import datetime, timezone
 ROBLOX_COOKIE = os.environ.get("ROBLOX_COOKIE", "").strip()
 CACHE_TTL = int(os.environ.get("CACHE_TTL", "600"))
 RATE_LIMIT_PER_MIN = int(os.environ.get("RATE_LIMIT_PER_MIN", "20"))
+DEEP_SAMPLE = int(os.environ.get("DEEP_SAMPLE", "20"))
 
 WEARABLE_TYPES = (
     "Hat,HairAccessory,FaceAccessory,NeckAccessory,ShoulderAccessory,"
@@ -170,13 +172,21 @@ def collect(uid, username=""):
             f"https://badges.roblox.com/v1/users/{uid}/badges",
             {"sortOrder": "Asc"}, auth=True, max_pages=5,
         )
-        earliest = None
-        for b in items:
-            d = (b.get("awardedDate") or b.get("created") or "")
-            if d and (earliest is None or d < earliest):
-                earliest = d
+        # The list says which badges, not when: award dates come 100 at a time.
+        dates = []
+        try:
+            for start in range(0, len(items), 100):
+                ids = ",".join(str(b["id"]) for b in items[start:start + 100])
+                res = roblox(f"https://badges.roblox.com/v1/users/{uid}/badges/awarded-dates?badgeIds={ids}", auth=True)
+                dates.extend(d.get("awardedDate") for d in res.get("data") or [])
+        except RobloxError:
+            dates = []  # timing is a refinement; the count still stands without it
+        timing = badge_timing(dates)
         return {"count": len(items), "truncated": truncated,
-                "earliest": earliest, "sample": [b["name"] for b in items[:8]]}
+                "earliest": timing["earliest"] if timing else None,
+                "sample": [b["name"] for b in items[:8]],
+                "games": len({(b.get("awarder") or {}).get("id") for b in items} - {None}),
+                "timing": timing}
 
     def favorites():
         items, truncated = page_all(
@@ -287,6 +297,41 @@ def collect(uid, username=""):
 
 
 # ---------------------------------------------------------------------------
+# Badge timing
+# ---------------------------------------------------------------------------
+# "Badge walk" games hand out hundreds of badges in minutes. Badges that arrive
+# this fast say nothing about how much an account has really been played.
+BURST_COUNT = 10      # this many badges...
+BURST_WINDOW = 600    # ...within this many seconds count as farmed
+
+
+def badge_timing(dates):
+    """Summarise when badges were awarded. dates: ISO strings. None if there are none."""
+    times = sorted(t.timestamp() for t in (parse_date(d) for d in dates) if t)
+    if not times:
+        return None
+    farmed = [False] * len(times)
+    biggest, start = 1, 0
+    for end in range(len(times)):
+        while times[end] - times[start] > BURST_WINDOW:
+            start += 1
+        size = end - start + 1
+        biggest = max(biggest, size)
+        if size >= BURST_COUNT:
+            for i in range(start, end + 1):
+                farmed[i] = True
+    iso = lambda t: datetime.fromtimestamp(t, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return {
+        "dated": len(times),
+        "farmed": sum(farmed),
+        "days": len({int(t // 86400) for t in times}),
+        "biggestBurst": biggest,
+        "earliest": iso(times[0]),
+        "latest": iso(times[-1]),
+    }
+
+
+# ---------------------------------------------------------------------------
 # Scoring
 # ---------------------------------------------------------------------------
 def parse_date(s):
@@ -390,17 +435,28 @@ def score(user, d):
 
     pb = get("playerBadges")
     if pb:
-        count = pb["count"]
+        count, timing = pb["count"], pb.get("timing")
+        farmed = timing["farmed"] if timing else 0
+        # Only badges earned at a human pace count toward "this account gets played".
+        real = count - farmed
+        more = "+" if pb["truncated"] else ""
+        what = f"{real}{more} game badges" + (f" earned at a normal pace ({farmed} more came in bursts)" if farmed else "") + "."
         if count == 0:
             sig(12, "No player badges", "Has never earned a badge in any game.", "activity")
-        elif count < 10:
-            sig(6, "Few player badges", f"{count} game badges.", "activity")
-        elif count >= 100:
-            sig(-12, "Lots of player badges", f"{count}{'+' if pb['truncated'] else ''} game badges.", "activity")
-        elif count >= 30:
-            sig(-7, "Plenty of player badges", f"{count} game badges.", "activity")
+        elif real < 10:
+            sig(6, "Few player badges", what, "activity")
+        elif real >= 100:
+            sig(-12, "Lots of player badges", what, "activity")
+        elif real >= 30:
+            sig(-7, "Plenty of player badges", what, "activity")
         else:
-            sig(-3, "Some player badges", f"{count} game badges.", "activity")
+            sig(-3, "Some player badges", what, "activity")
+        if farmed >= 20 and farmed * 2 >= count:
+            sig(8, "Badges look farmed",
+                f"{farmed} of {count}{more} badges arrived in bursts of {BURST_COUNT} or more within {BURST_WINDOW // 60} minutes, "
+                f"the pattern of a badge-walk game (up to {timing['biggestBurst']} in one burst).", "activity")
+        if timing and real >= 10 and timing["days"] >= 15:
+            sig(-4, "Badges earned over many days", f"Badges were earned on {timing['days']} different days.", "activity")
 
     fav = get("favorites")
     if fav:
@@ -475,17 +531,19 @@ def score(user, d):
     if user.get("hasVerifiedBadge"):
         total = min(total, 10)
 
-    if total >= 70:
-        verdict, summary = "Likely alt", "Most signals point to a throwaway or secondary account."
-    elif total >= 50:
-        verdict, summary = "Possibly alt", "Mixed signals; leans toward an alt or a very inactive account."
-    elif total >= 30:
-        verdict, summary = "Probably main", "Looks like a real, moderately active account."
-    else:
-        verdict, summary = "Likely main", "Strong history and activity for a primary account."
-
+    verdict, summary = verdict_of(total)
     signals.sort(key=lambda s: -abs(s["points"]))
     return total, verdict, summary, signals
+
+
+def verdict_of(total):
+    if total >= 70:
+        return "Likely alt", "Most signals point to a throwaway or secondary account."
+    if total >= 50:
+        return "Possibly alt", "Mixed signals; leans toward an alt or a very inactive account."
+    if total >= 30:
+        return "Probably main", "Looks like a real, moderately active account."
+    return "Likely main", "Strong history and activity for a primary account."
 
 
 def lookup(query):
@@ -541,6 +599,244 @@ def lookup(query):
 
 
 # ---------------------------------------------------------------------------
+# Deep check: the account's friends as a web
+# ---------------------------------------------------------------------------
+# Roblox only allows about 30 profile reads a minute, far too few to open every
+# friend's profile. But user IDs are handed out in order, so an ID alone places
+# an account's creation date to within a few weeks. Sampled 1 October 2026;
+# IDs past the last row are extrapolated.
+ID_ANCHORS = [(i, datetime.fromisoformat(d).replace(tzinfo=timezone.utc).timestamp()) for i, d in [
+    (1, "2006-02-27"), (1000, "2006-08-11"), (100000, "2007-11-20"),
+    (1000000, "2008-09-06"), (5000000, "2009-10-26"), (10000000, "2010-08-31"),
+    (25000000, "2012-03-20"), (50000000, "2013-10-16"), (100000000, "2015-11-28"),
+    (200000000, "2016-12-24"), (350000000, "2017-07-24"), (500000000, "2018-01-26"),
+    (750000000, "2018-09-05"), (1000000000, "2019-03-12"), (1500000000, "2020-03-11"),
+    (2000000000, "2020-11-06"), (2500000000, "2021-04-11"), (3000000000, "2021-10-22"),
+    (3500000000, "2022-04-26"), (4000000000, "2022-10-25"), (4500000000, "2023-04-07"),
+    (5000000000, "2023-09-03"), (5500000000, "2024-01-27"), (6000000000, "2024-05-07"),
+    (7000000000, "2024-06-13"), (7500000000, "2024-10-25"), (8000000000, "2025-02-10"),
+    (8500000000, "2025-05-19"), (9000000000, "2025-07-23"), (9500000000, "2025-09-16"),
+    (10000000000, "2025-11-22"), (10500000000, "2026-02-12"), (11000000000, "2026-05-24"),
+    (11500000000, "2026-08-14"),
+]]
+NAMED_MAX = 200     # friends whose names and ban status are read (in batches)
+MUTUAL_PAGES = 2    # pages of 50 read from each profiled friend's own friends list
+DAY = 86400
+
+
+def estimate_created(uid, known=None):
+    """Estimate when account `uid` was created, as a Unix time. `known` is an
+    exact (id, time) pair, used as an extra anchor when it fits between its neighbours."""
+    pts = list(ID_ANCHORS)
+    if known:
+        before = [p for p in pts if p[0] < known[0]]
+        after = [p for p in pts if p[0] > known[0]]
+        if (not before or before[-1][1] <= known[1]) and (not after or known[1] <= after[0][1]):
+            pts = before + [known] + after
+    if uid <= pts[0][0]:
+        return pts[0][1]
+    for (a, ta), (b, tb) in zip(pts, pts[1:]):
+        if uid <= b:
+            return ta + (tb - ta) * (uid - a) / (b - a)
+    (a, ta), (b, tb) = pts[-2], pts[-1]
+    return min(time.time(), tb + (tb - ta) * (uid - b) / (b - a))
+
+
+def spread(items, n):
+    """Up to n items taken evenly across the list, always the same ones for the same list."""
+    if len(items) <= n:
+        return list(items)
+    return [items[round(i * (len(items) - 1) / (n - 1))] for i in range(n)]
+
+
+def name_stem(name):
+    """A username with its decoration removed: case, separators, trailing digits, alt-style tags."""
+    stem = re.sub(r"[^a-z0-9]", "", name.lower())
+    stem = re.sub(r"\d+$", "", stem)
+    return re.sub(r"^(alt|the|its|im)+|(alt|backup|spare|temp|second|yt)+$", "", stem)
+
+
+def similar_names(a, b):
+    x, y = name_stem(a), name_stem(b)
+    if len(x) < 4 or len(y) < 4:
+        return False
+    short, long = (x, y) if len(x) <= len(y) else (y, x)
+    return x == y or (len(short) >= 5 and long.startswith(short))
+
+
+def deep_collect(user):
+    """Read the account's friends list and profile a spread of the friends on it.
+    Returns None when the list can't be seen."""
+    uid = user["id"]
+    quiet = lambda fn: _quiet(fn)
+    try:
+        listed = roblox(f"https://friends.roblox.com/v1/users/{uid}/friends").get("data") or []
+    except RobloxError as e:
+        if "HTTP 403" in str(e):
+            return None
+        raise
+    ids = sorted({f["id"] for f in listed if f.get("id", 0) > 0})
+    hidden = sum(1 for f in listed if f.get("id", 0) <= 0)
+    friend_set = set(ids)
+
+    # Names, verified and banned for up to NAMED_MAX friends: two cheap batch calls per 100.
+    named = spread(ids, NAMED_MAX)
+    info, live = {}, set()
+    for start in range(0, len(named), 100):
+        chunk = named[start:start + 100]
+        url = "https://users.roblox.com/v1/users"
+        for u in roblox(url, method="POST", body={"userIds": chunk, "excludeBannedUsers": False}).get("data") or []:
+            info[u["id"]] = u
+        got = quiet(lambda: roblox(url, method="POST", body={"userIds": chunk, "excludeBannedUsers": True}))
+        live |= {u["id"] for u in (got or {}).get("data") or []} if got else set(chunk)
+
+    # A closer look at a spread of them, 4 requests at a time.
+    sample = spread([i for i in named if i in info], DEEP_SAMPLE)
+
+    def profile(fid):
+        own = set()
+        cursor, complete = None, False
+        for _ in range(MUTUAL_PAGES):
+            page = quiet(lambda: roblox(f"https://friends.roblox.com/v1/users/{fid}/friends/find?limit=50"
+                                        + (f"&cursor={urllib.parse.quote(cursor)}" if cursor else ""), retries=2))
+            if page is None:
+                own = None
+                break
+            own |= {p["id"] for p in page.get("PageItems") or []}
+            cursor = page.get("NextCursor")
+            if not cursor:
+                complete = True
+                break
+        badges = quiet(lambda: roblox(f"https://accountinformation.roblox.com/v1/users/{fid}/roblox-badges", retries=2))
+        groups = quiet(lambda: roblox(f"https://groups.roblox.com/v1/users/{fid}/groups/roles", retries=2))
+        count = len(own) if own is not None and complete else \
+            quiet(lambda: roblox(f"https://friends.roblox.com/v1/users/{fid}/friends/count", retries=2)["count"])
+        return {
+            "friends": count,
+            "robloxBadges": len(badges) if badges is not None else None,
+            "groups": len(groups.get("data") or []) if groups is not None else None,
+            "links": sorted((own & friend_set) - {fid}) if own is not None else None,
+        }
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        profiles = dict(zip(sample, pool.map(profile, sample)))
+    shots = quiet(lambda: roblox("https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds="
+                                 + ",".join(map(str, sample)) + "&size=48x48&format=Png&isCircular=false")) if sample else None
+    avatars = {t["targetId"]: t.get("imageUrl") for t in (shots or {}).get("data") or []}
+    return {"ids": ids, "hidden": hidden, "named": named, "info": info, "live": live,
+            "sample": sample, "profiles": profiles, "avatars": avatars}
+
+
+def _quiet(fn):
+    """Run one optional Roblox call; a failure just means that detail is unknown."""
+    try:
+        return fn()
+    except RobloxError:
+        return None
+
+
+def web_signals(user, raw, now=None):
+    """Turn the friends data into per-friend rows, the links between them, and
+    signals that move the score. Pure: no network."""
+    now = now or time.time()
+    signals = []
+
+    def sig(points, label, detail):
+        signals.append({"points": points, "label": label, "detail": detail, "category": "web"})
+
+    created = parse_date(user.get("created"))
+    known = (user["id"], created.timestamp()) if created else None
+    born = known[1] if known else estimate_created(user["id"])
+    ids, info, profiles = raw["ids"], raw["info"], raw["profiles"]
+    age = {i: max(0, int((now - estimate_created(i, known)) // DAY)) for i in ids}
+    same_week = [i for i in ids if abs(estimate_created(i, known) - born) <= 7 * DAY]
+    banned = [i for i in raw["named"] if i in info and i not in raw["live"]]
+    alike = [i for i in raw["named"] if i in info and similar_names(info[i].get("name") or "", user.get("name") or "")]
+
+    friends = []
+    for i in raw["sample"]:
+        p, u = profiles[i], info[i]
+        # "Thin": little on the profile beyond having been created.
+        thin = sum([age[i] < 180, p["friends"] is not None and p["friends"] < 5,
+                    p["robloxBadges"] == 0, p["groups"] == 0]) >= 3
+        friends.append({
+            "id": i, "name": u.get("name"), "displayName": u.get("displayName"),
+            "verified": bool(u.get("hasVerifiedBadge")), "banned": i in banned, "similarName": i in alike,
+            "estCreated": datetime.fromtimestamp(estimate_created(i, known), timezone.utc).strftime("%Y-%m"),
+            "estAgeDays": age[i], "friends": p["friends"], "robloxBadges": p["robloxBadges"], "groups": p["groups"],
+            "mutuals": len(p["links"]) if p["links"] is not None else None, "thin": thin,
+            "avatarUrl": raw["avatars"].get(i), "profileUrl": f"https://www.roblox.com/users/{i}/profile",
+        })
+    in_sample = set(raw["sample"])
+    links = sorted({(min(a, b), max(a, b)) for a in raw["sample"] for b in (profiles[a]["links"] or []) if b in in_sample})
+
+    n = len(ids)
+    if n < 3:
+        sig(0, "Too few friends to read much into", f"{n} friend(s) on the list.")
+    else:
+        ages = sorted(age.values())
+        median, young = ages[n // 2], sum(1 for a in ages if a < 90)
+        if young * 10 >= n * 6:
+            sig(12, "Friends are mostly new accounts", f"{young} of {n} friends look less than three months old.")
+        elif median >= 730:
+            sig(-8, "Friends are long-standing accounts", f"Half of the {n} friends are over {median // 365} years old.")
+        elif median >= 365:
+            sig(-4, "Friends are established accounts", f"Half of the {n} friends are over a year old.")
+        if len(same_week) >= 3 and len(same_week) * 10 >= n * 3:
+            sig(10, "Friends made alongside this account", f"{len(same_week)} of {n} friends were created within a week of it.")
+
+        seen = [f for f in friends if f["friends"] is not None]
+        thin = sum(1 for f in seen if f["thin"])
+        if len(seen) >= 4 and thin * 10 >= len(seen) * 6:
+            sig(8, "Friends' own profiles are empty", f"{thin} of {len(seen)} friends looked at have almost nothing on their profile.")
+        elif len(seen) >= 4 and thin * 10 <= len(seen) * 2:
+            sig(-4, "Friends have real profiles", f"{len(seen) - thin} of {len(seen)} friends looked at have friends, groups or badges of their own.")
+
+        linked = [f for f in friends if f["mutuals"] is not None]
+        tied = sum(1 for f in linked if f["mutuals"] >= 1)
+        if len(linked) >= 4 and tied * 10 >= len(linked) * 6:
+            sig(-8, "Friends know each other", f"{tied} of {len(linked)} friends looked at are also friends with others on the list.")
+        elif len(linked) >= 4 and tied == 0:
+            sig(6, "Friends don't know each other", f"None of the {len(linked)} friends looked at are friends with anyone else on the list.")
+
+    if len(banned) >= 2 and len(banned) * 4 >= len(raw["named"]):
+        sig(6, "Many banned friends", f"{len(banned)} of {len(raw['named'])} friends are banned accounts.")
+    if alike:
+        names = ", ".join(info[i]["name"] for i in alike[:3])
+        sig(8, "Friends with near-identical usernames", f"{names}{' and others' if len(alike) > 3 else ''}.")
+
+    signals.sort(key=lambda s: -abs(s["points"]))
+    return {
+        "friendCount": n, "hidden": raw["hidden"], "named": len(raw["named"]), "profiled": len(friends),
+        "medianAgeDays": sorted(age.values())[n // 2] if n else None,
+        "signals": signals, "friends": friends, "links": [list(l) for l in links],
+    }
+
+
+def deep_lookup(query):
+    """A normal lookup plus the friends analysis. The deep score is the normal
+    score moved by the web signals."""
+    result = dict(cached_lookup(query))
+    result.pop("cached", None)
+    user = dict(result["user"])
+    raw = deep_collect(user)
+    if raw is None:
+        result["deep"] = {"friendCount": None, "note": "This account's friends list isn't visible."}
+        return result
+    if not raw["ids"]:
+        result["deep"] = {"friendCount": 0, "hidden": raw["hidden"], "note": "This account has no friends to look at."}
+        return result
+    deep = web_signals(user, raw)
+    total = max(0, min(100, result["score"] + sum(s["points"] for s in deep["signals"])))
+    if user.get("hasVerifiedBadge"):
+        total = min(total, 10)
+    deep["score"] = total
+    deep["verdict"], deep["summary"] = verdict_of(total)
+    result["deep"] = deep
+    return result
+
+
+# ---------------------------------------------------------------------------
 # HTTP server: cache, rate limit, routing
 # ---------------------------------------------------------------------------
 _cache = {}
@@ -570,6 +866,20 @@ def cached_lookup(query, fresh=False):
     return dict(result, cached=False)
 
 
+def cached_deep(query):
+    key = "deep:" + query.strip().lower().lstrip("@")
+    now = time.time()
+    with _cache_lock:
+        hit = _cache.get(key)
+        if hit and now - hit[0] < CACHE_TTL:
+            return dict(hit[1], cached=True)
+    result = deep_lookup(query)
+    with _cache_lock:
+        for k in (key, f"deep:{result['user']['id']}", "deep:" + (result["user"]["name"] or "").lower()):
+            _cache[k] = (now, result)
+    return dict(result, cached=False)
+
+
 def rate_limited(ip):
     now = time.time()
     with _hits_lock:
@@ -591,7 +901,8 @@ def handle_api(path, query_string, ip):
     """Route an /api/* request. Returns (http_status, json_payload)."""
     if path.rstrip("/") == "/api/health":
         return 200, {"ok": True, "badgeCheck": bool(ROBLOX_COOKIE)}
-    if path.rstrip("/") != "/api/lookup":
+    route = path.rstrip("/")
+    if route not in ("/api/lookup", "/api/deep"):
         return 404, {"error": "not found"}
     qs = urllib.parse.parse_qs(query_string)
     q = qs.get("q", [""])[0]
@@ -603,6 +914,8 @@ def handle_api(path, query_string, ip):
     if rate_limited(ip):
         return 429, {"error": "Slow down: too many lookups this minute."}
     try:
+        if route == "/api/deep":
+            return 200, cached_deep(q)
         return 200, cached_lookup(q, fresh)
     except NotFound as e:
         return 404, {"error": str(e)}

@@ -1,6 +1,7 @@
 // Roblox Alt Checker - Supabase Edge Function (Deno).
 //
 // GET  ?q=<username|userId>[&fresh=1]  -> lookup JSON (+ quota when accounts are on)
+// GET  ?q=<username|userId>&deep=1     -> lookup JSON + "deep": the friends analysis
 // GET  ?quota=1                        -> the caller's plan and today's allowance
 // GET  ?health=1                       -> {ok, badgeCheck, accounts}
 //
@@ -14,6 +15,11 @@
 //   GUEST_DAILY_LIMIT   lookups per day without an account (default 3)
 //   FREE_DAILY_LIMIT    lookups per day on a free account (default 10)
 //   PRO_DAILY_LIMIT     lookups per day on Pro (default 500)
+//   DEEP_GUEST_DAILY_LIMIT / DEEP_FREE_DAILY_LIMIT / DEEP_PRO_DAILY_LIMIT
+//                       deep checks per day (defaults 0 / 1 / 10)
+//   DEEP_GLOBAL_PER_MIN deep checks per minute across the whole site, Pro
+//                       included: Roblox caps how fast friends can be read (default 3)
+//   DEEP_SAMPLE         friends profiled one by one in a deep check (default 20)
 //   IP_DAILY_LIMIT      non-Pro lookups per day from one network, across all
 //                       its guests and free accounts (default 40)
 //   GLOBAL_DAILY_LIMIT  non-Pro lookups per day across the whole site (default 5000)
@@ -43,6 +49,14 @@ const LIMITS = {
   free: Number(Deno.env.get("FREE_DAILY_LIMIT") ?? "10"),
   pro: Number(Deno.env.get("PRO_DAILY_LIMIT") ?? "500"),
 };
+const DEEP_LIMITS = {
+  guest: Number(Deno.env.get("DEEP_GUEST_DAILY_LIMIT") ?? "0"),
+  free: Number(Deno.env.get("DEEP_FREE_DAILY_LIMIT") ?? "1"),
+  pro: Number(Deno.env.get("DEEP_PRO_DAILY_LIMIT") ?? "10"),
+};
+const DEEP_GLOBAL_PER_MIN = Number(Deno.env.get("DEEP_GLOBAL_PER_MIN") ?? "3");
+const DEEP_PER_MIN = 3; // per account
+const DEEP_SAMPLE = Number(Deno.env.get("DEEP_SAMPLE") ?? "20");
 const IP_DAILY_LIMIT = Number(Deno.env.get("IP_DAILY_LIMIT") ?? "40");
 const GLOBAL_DAILY_LIMIT = Number(Deno.env.get("GLOBAL_DAILY_LIMIT") ?? "5000");
 // Failed lookups are given back, but only this many times a day per caller, so
@@ -234,12 +248,27 @@ async function collect(uid: number, username: string): Promise<Record<string, Re
         { sortOrder: "Asc" },
         { auth: true, maxPages: 5 },
       );
-      let earliest: string | null = null;
-      for (const b of items) {
-        const d = b.awardedDate || b.created || "";
-        if (d && (earliest === null || d < earliest)) earliest = d;
+      // The list says which badges, not when: award dates come 100 at a time.
+      let dates: string[] = [];
+      try {
+        for (let start = 0; start < items.length; start += 100) {
+          const ids = items.slice(start, start + 100).map((b) => b.id).join(",");
+          const res = await roblox(`https://badges.roblox.com/v1/users/${uid}/badges/awarded-dates?badgeIds=${ids}`, { auth: true });
+          dates.push(...(res?.data ?? []).map((d: Json) => d.awardedDate));
+        }
+      } catch (e) {
+        if (!(e instanceof RobloxError)) throw e;
+        dates = []; // timing is a refinement; the count still stands without it
       }
-      return { count: items.length, truncated, earliest, sample: items.slice(0, 8).map((b) => b.name) };
+      const timing = badgeTiming(dates);
+      return {
+        count: items.length,
+        truncated,
+        earliest: timing ? timing.earliest : null,
+        sample: items.slice(0, 8).map((b) => b.name),
+        games: new Set(items.map((b) => b.awarder?.id).filter((id) => id != null)).size,
+        timing,
+      };
     },
     favorites: async () => {
       const [items, truncated] = await pageAll(
@@ -338,6 +367,40 @@ async function collect(uid: number, username: string): Promise<Record<string, Re
 }
 
 // ---------------------------------------------------------------------------
+// Badge timing
+// ---------------------------------------------------------------------------
+// "Badge walk" games hand out hundreds of badges in minutes. Badges that arrive
+// this fast say nothing about how much an account has really been played.
+const BURST_COUNT = 10; // this many badges...
+const BURST_WINDOW = 600; // ...within this many seconds count as farmed
+
+/** Roblox timestamps carry up to 7 fractional digits; Date.parse wants at most 3. */
+const parseDate = (s: unknown): number => typeof s === "string" ? Date.parse(s.replace(/(\.\d{3})\d+/, "$1")) : NaN;
+
+/** Summarise when badges were awarded. Null if there are no usable dates. */
+function badgeTiming(dates: unknown[]) {
+  const times = dates.map(parseDate).filter((t) => !Number.isNaN(t)).map((t) => t / 1000).sort((a, b) => a - b);
+  if (!times.length) return null;
+  const farmed: boolean[] = new Array(times.length).fill(false);
+  let biggest = 1, start = 0;
+  for (let end = 0; end < times.length; end++) {
+    while (times[end] - times[start] > BURST_WINDOW) start++;
+    const size = end - start + 1;
+    biggest = Math.max(biggest, size);
+    if (size >= BURST_COUNT) for (let i = start; i <= end; i++) farmed[i] = true;
+  }
+  const iso = (t: number) => new Date(Math.floor(t) * 1000).toISOString().slice(0, 19) + "Z";
+  return {
+    dated: times.length,
+    farmed: farmed.filter(Boolean).length,
+    days: new Set(times.map((t) => Math.floor(t / 86400))).size,
+    biggestBurst: biggest,
+    earliest: iso(times[0]),
+    latest: iso(times[times.length - 1]),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Scoring
 // ---------------------------------------------------------------------------
 interface Signal {
@@ -414,12 +477,29 @@ function score(user: Json, d: Record<string, Result>) {
   }
   const pb = get("playerBadges");
   if (pb) {
-    const c = pb.count;
-    if (c === 0) sig(12, "No player badges", "Has never earned a badge in any game.", "activity");
-    else if (c < 10) sig(6, "Few player badges", `${c} game badges.`, "activity");
-    else if (c >= 100) sig(-12, "Lots of player badges", `${c}${pb.truncated ? "+" : ""} game badges.`, "activity");
-    else if (c >= 30) sig(-7, "Plenty of player badges", `${c} game badges.`, "activity");
-    else sig(-3, "Some player badges", `${c} game badges.`, "activity");
+    const count: number = pb.count, timing = pb.timing;
+    const farmed: number = timing ? timing.farmed : 0;
+    // Only badges earned at a human pace count toward "this account gets played".
+    const real = count - farmed;
+    const more = pb.truncated ? "+" : "";
+    const what = `${real}${more} game badges` + (farmed ? ` earned at a normal pace (${farmed} more came in bursts)` : "") + ".";
+    if (count === 0) sig(12, "No player badges", "Has never earned a badge in any game.", "activity");
+    else if (real < 10) sig(6, "Few player badges", what, "activity");
+    else if (real >= 100) sig(-12, "Lots of player badges", what, "activity");
+    else if (real >= 30) sig(-7, "Plenty of player badges", what, "activity");
+    else sig(-3, "Some player badges", what, "activity");
+    if (farmed >= 20 && farmed * 2 >= count) {
+      sig(
+        8,
+        "Badges look farmed",
+        `${farmed} of ${count}${more} badges arrived in bursts of ${BURST_COUNT} or more within ${BURST_WINDOW / 60} minutes, ` +
+          `the pattern of a badge-walk game (up to ${timing.biggestBurst} in one burst).`,
+        "activity",
+      );
+    }
+    if (timing && real >= 10 && timing.days >= 15) {
+      sig(-4, "Badges earned over many days", `Badges were earned on ${timing.days} different days.`, "activity");
+    }
   }
   const fav = get("favorites");
   if (fav) {
@@ -476,14 +556,16 @@ function score(user: Json, d: Record<string, Result>) {
   let total = Math.max(0, Math.min(100, 35 + signals.reduce((s, x) => s + x.points, 0)));
   if (user.hasVerifiedBadge) total = Math.min(total, 10);
 
-  let verdict: string, summary: string;
-  if (total >= 70) [verdict, summary] = ["Likely alt", "Most signals point to a throwaway or secondary account."];
-  else if (total >= 50) [verdict, summary] = ["Possibly alt", "Mixed signals; leans toward an alt or a very inactive account."];
-  else if (total >= 30) [verdict, summary] = ["Probably main", "Looks like a real, moderately active account."];
-  else [verdict, summary] = ["Likely main", "Strong history and activity for a primary account."];
-
+  const [verdict, summary] = verdictOf(total);
   signals.sort((a, b) => Math.abs(b.points) - Math.abs(a.points));
   return { total, verdict, summary, signals, ageDays };
+}
+
+function verdictOf(total: number): [string, string] {
+  if (total >= 70) return ["Likely alt", "Most signals point to a throwaway or secondary account."];
+  if (total >= 50) return ["Possibly alt", "Mixed signals; leans toward an alt or a very inactive account."];
+  if (total >= 30) return ["Probably main", "Looks like a real, moderately active account."];
+  return ["Likely main", "Strong history and activity for a primary account."];
 }
 
 async function lookup(query: string) {
@@ -537,6 +619,311 @@ async function lookup(query: string) {
 }
 
 // ---------------------------------------------------------------------------
+// Deep check: the account's friends as a web
+// ---------------------------------------------------------------------------
+// Roblox only allows about 30 profile reads a minute, far too few to open every
+// friend's profile. But user IDs are handed out in order, so an ID alone places
+// an account's creation date to within a few weeks. Sampled 1 October 2026;
+// IDs past the last row are extrapolated.
+const ID_ANCHORS: [number, number][] = ([
+  [1, "2006-02-27"], [1000, "2006-08-11"], [100000, "2007-11-20"],
+  [1000000, "2008-09-06"], [5000000, "2009-10-26"], [10000000, "2010-08-31"],
+  [25000000, "2012-03-20"], [50000000, "2013-10-16"], [100000000, "2015-11-28"],
+  [200000000, "2016-12-24"], [350000000, "2017-07-24"], [500000000, "2018-01-26"],
+  [750000000, "2018-09-05"], [1000000000, "2019-03-12"], [1500000000, "2020-03-11"],
+  [2000000000, "2020-11-06"], [2500000000, "2021-04-11"], [3000000000, "2021-10-22"],
+  [3500000000, "2022-04-26"], [4000000000, "2022-10-25"], [4500000000, "2023-04-07"],
+  [5000000000, "2023-09-03"], [5500000000, "2024-01-27"], [6000000000, "2024-05-07"],
+  [7000000000, "2024-06-13"], [7500000000, "2024-10-25"], [8000000000, "2025-02-10"],
+  [8500000000, "2025-05-19"], [9000000000, "2025-07-23"], [9500000000, "2025-09-16"],
+  [10000000000, "2025-11-22"], [10500000000, "2026-02-12"], [11000000000, "2026-05-24"],
+  [11500000000, "2026-08-14"],
+] as [number, string][]).map(([id, day]) => [id, Date.parse(`${day}T00:00:00Z`) / 1000]);
+const NAMED_MAX = 200; // friends whose names and ban status are read (in batches)
+const MUTUAL_PAGES = 2; // pages of 50 read from each profiled friend's own friends list
+const DAY = 86400;
+
+/**
+ * Estimate when account `uid` was created, as a Unix time. `known` is an exact
+ * [id, time] pair, used as an extra anchor when it fits between its neighbours.
+ */
+function estimateCreated(uid: number, known: [number, number] | null = null): number {
+  let pts = ID_ANCHORS;
+  if (known) {
+    const before = pts.filter((p) => p[0] < known[0]), after = pts.filter((p) => p[0] > known[0]);
+    if ((!before.length || before[before.length - 1][1] <= known[1]) && (!after.length || known[1] <= after[0][1])) {
+      pts = [...before, known, ...after];
+    }
+  }
+  if (uid <= pts[0][0]) return pts[0][1];
+  for (let i = 1; i < pts.length; i++) {
+    const [a, ta] = pts[i - 1], [b, tb] = pts[i];
+    if (uid <= b) return ta + (tb - ta) * (uid - a) / (b - a);
+  }
+  const [a, ta] = pts[pts.length - 2], [b, tb] = pts[pts.length - 1];
+  return Math.min(Date.now() / 1000, tb + (tb - ta) * (uid - b) / (b - a));
+}
+
+/** Up to n items taken evenly across the list, always the same ones for the same list. */
+function spread<T>(items: T[], n: number): T[] {
+  if (items.length <= n) return [...items];
+  return Array.from({ length: n }, (_, i) => items[pyRound(i * (items.length - 1) / (n - 1))]);
+}
+
+/** Round half to even, as Python's round() does, so both ports pick the same friends. */
+function pyRound(x: number): number {
+  const f = Math.floor(x);
+  return x - f === 0.5 ? (f % 2 === 0 ? f : f + 1) : Math.round(x);
+}
+
+/** A username with its decoration removed: case, separators, trailing digits, alt-style tags. */
+const nameStem = (name: string) =>
+  name.toLowerCase().replace(/[^a-z0-9]/g, "").replace(/\d+$/, "").replace(/^(alt|the|its|im)+|(alt|backup|spare|temp|second|yt)+$/g, "");
+
+function similarNames(a: string, b: string): boolean {
+  const x = nameStem(a), y = nameStem(b);
+  if (x.length < 4 || y.length < 4) return false;
+  const [short, long] = x.length <= y.length ? [x, y] : [y, x];
+  return x === y || (short.length >= 5 && long.startsWith(short));
+}
+
+/** Run one optional Roblox call; a failure just means that detail is unknown. */
+async function quiet<T>(fn: () => Promise<T>): Promise<T | null> {
+  try {
+    return await fn();
+  } catch (e) {
+    if (e instanceof RobloxError) return null;
+    throw e;
+  }
+}
+
+interface FriendProfile {
+  friends: number | null;
+  robloxBadges: number | null;
+  groups: number | null;
+  links: number[] | null;
+}
+interface DeepRaw {
+  ids: number[];
+  hidden: number;
+  named: number[];
+  info: Map<number, Json>;
+  live: Set<number>;
+  sample: number[];
+  profiles: Map<number, FriendProfile>;
+  avatars: Map<number, string | null>;
+}
+
+/**
+ * Read the account's friends list and profile a spread of the friends on it.
+ * Returns null when the list can't be seen.
+ */
+async function deepCollect(user: Json): Promise<DeepRaw | null> {
+  const uid: number = user.id;
+  let listed: Json[];
+  try {
+    listed = (await roblox(`https://friends.roblox.com/v1/users/${uid}/friends`))?.data ?? [];
+  } catch (e) {
+    if (e instanceof RobloxError && e.message.includes("HTTP 403")) return null;
+    throw e;
+  }
+  const ids = [...new Set(listed.map((f) => f.id as number).filter((id) => id > 0))].sort((a, b) => a - b);
+  const hidden = listed.filter((f) => !(f.id > 0)).length;
+  const friendSet = new Set(ids);
+
+  // Names, verified and banned for up to NAMED_MAX friends: two cheap batch calls per 100.
+  const named = spread(ids, NAMED_MAX);
+  const info = new Map<number, Json>(), live = new Set<number>();
+  for (let start = 0; start < named.length; start += 100) {
+    const chunk = named.slice(start, start + 100);
+    const url = "https://users.roblox.com/v1/users";
+    const all = await roblox(url, { method: "POST", body: { userIds: chunk, excludeBannedUsers: false } });
+    for (const u of all?.data ?? []) info.set(u.id, u);
+    const got = await quiet(() => roblox(url, { method: "POST", body: { userIds: chunk, excludeBannedUsers: true } }));
+    for (const id of got ? (got.data ?? []).map((u: Json) => u.id) : chunk) live.add(id);
+  }
+
+  // A closer look at a spread of them, 4 requests at a time.
+  const sample = spread(named.filter((id) => info.has(id)), DEEP_SAMPLE);
+
+  const profile = async (fid: number): Promise<FriendProfile> => {
+    let own: Set<number> | null = new Set<number>();
+    let cursor: string | null = null, complete = false;
+    for (let page = 0; page < MUTUAL_PAGES; page++) {
+      const res: Json = await quiet(() =>
+        roblox(
+          `https://friends.roblox.com/v1/users/${fid}/friends/find?limit=50` + (cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""),
+          { retries: 2 },
+        )
+      );
+      if (res === null) {
+        own = null;
+        break;
+      }
+      for (const p of res.PageItems ?? []) own.add(p.id);
+      cursor = res.NextCursor ?? null;
+      if (!cursor) {
+        complete = true;
+        break;
+      }
+    }
+    const badges = await quiet(() => roblox(`https://accountinformation.roblox.com/v1/users/${fid}/roblox-badges`, { retries: 2 }));
+    const groups = await quiet(() => roblox(`https://groups.roblox.com/v1/users/${fid}/groups/roles`, { retries: 2 }));
+    const count = own !== null && complete
+      ? own.size
+      : (await quiet(() => roblox(`https://friends.roblox.com/v1/users/${fid}/friends/count`, { retries: 2 })))?.count ?? null;
+    return {
+      friends: count,
+      robloxBadges: badges !== null ? badges.length : null,
+      groups: groups !== null ? (groups.data ?? []).length : null,
+      links: own !== null ? [...own].filter((id) => friendSet.has(id) && id !== fid).sort((a, b) => a - b) : null,
+    };
+  };
+
+  const profiles = new Map<number, FriendProfile>();
+  let next = 0;
+  const worker = async () => {
+    while (next < sample.length) {
+      const fid = sample[next++];
+      profiles.set(fid, await profile(fid));
+    }
+  };
+  await Promise.all(Array.from({ length: 4 }, worker));
+  const shots = sample.length
+    ? await quiet(() =>
+      roblox(
+        `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${sample.join(",")}&size=48x48&format=Png&isCircular=false`,
+      )
+    )
+    : null;
+  const avatars = new Map<number, string | null>((shots?.data ?? []).map((t: Json) => [t.targetId, t.imageUrl ?? null]));
+  return { ids, hidden, named, info, live, sample, profiles, avatars };
+}
+
+/**
+ * Turn the friends data into per-friend rows, the links between them, and
+ * signals that move the score. Pure: no network.
+ */
+function webSignals(user: Json, raw: DeepRaw, now = Date.now() / 1000) {
+  const signals: Signal[] = [];
+  const sig = (points: number, label: string, detail: string) => signals.push({ points, label, detail, category: "web" });
+
+  const createdAt = parseDate(user.created);
+  const known: [number, number] | null = Number.isNaN(createdAt) ? null : [user.id, createdAt / 1000];
+  const born = known ? known[1] : estimateCreated(user.id);
+  const { ids, info, profiles } = raw;
+  const age = new Map(ids.map((i) => [i, Math.max(0, Math.floor((now - estimateCreated(i, known)) / DAY))]));
+  const sameWeek = ids.filter((i) => Math.abs(estimateCreated(i, known) - born) <= 7 * DAY);
+  const banned = raw.named.filter((i) => info.has(i) && !raw.live.has(i));
+  const alike = raw.named.filter((i) => info.has(i) && similarNames(info.get(i).name ?? "", user.name ?? ""));
+
+  const friends = raw.sample.map((i) => {
+    const p = profiles.get(i)!, u = info.get(i);
+    // "Thin": little on the profile beyond having been created.
+    const thin = [age.get(i)! < 180, p.friends !== null && p.friends < 5, p.robloxBadges === 0, p.groups === 0]
+      .filter(Boolean).length >= 3;
+    return {
+      id: i,
+      name: u.name ?? null,
+      displayName: u.displayName ?? null,
+      verified: Boolean(u.hasVerifiedBadge),
+      banned: banned.includes(i),
+      similarName: alike.includes(i),
+      estCreated: new Date(estimateCreated(i, known) * 1000).toISOString().slice(0, 7),
+      estAgeDays: age.get(i)!,
+      friends: p.friends,
+      robloxBadges: p.robloxBadges,
+      groups: p.groups,
+      mutuals: p.links !== null ? p.links.length : null,
+      thin,
+      avatarUrl: raw.avatars.get(i) ?? null,
+      profileUrl: `https://www.roblox.com/users/${i}/profile`,
+    };
+  });
+  const inSample = new Set(raw.sample);
+  const pairs = new Map<string, [number, number]>();
+  for (const a of raw.sample) {
+    for (const b of profiles.get(a)!.links ?? []) {
+      if (inSample.has(b)) pairs.set(`${Math.min(a, b)}-${Math.max(a, b)}`, [Math.min(a, b), Math.max(a, b)]);
+    }
+  }
+  const links = [...pairs.values()].sort((x, y) => x[0] - y[0] || x[1] - y[1]);
+
+  const n = ids.length;
+  const ages = [...age.values()].sort((a, b) => a - b);
+  if (n < 3) {
+    sig(0, "Too few friends to read much into", `${n} friend(s) on the list.`);
+  } else {
+    const median = ages[Math.floor(n / 2)], young = ages.filter((a) => a < 90).length;
+    if (young * 10 >= n * 6) {
+      sig(12, "Friends are mostly new accounts", `${young} of ${n} friends look less than three months old.`);
+    } else if (median >= 730) {
+      sig(-8, "Friends are long-standing accounts", `Half of the ${n} friends are over ${Math.floor(median / 365)} years old.`);
+    } else if (median >= 365) {
+      sig(-4, "Friends are established accounts", `Half of the ${n} friends are over a year old.`);
+    }
+    if (sameWeek.length >= 3 && sameWeek.length * 10 >= n * 3) {
+      sig(10, "Friends made alongside this account", `${sameWeek.length} of ${n} friends were created within a week of it.`);
+    }
+
+    const seen = friends.filter((f) => f.friends !== null);
+    const thin = seen.filter((f) => f.thin).length;
+    if (seen.length >= 4 && thin * 10 >= seen.length * 6) {
+      sig(8, "Friends' own profiles are empty", `${thin} of ${seen.length} friends looked at have almost nothing on their profile.`);
+    } else if (seen.length >= 4 && thin * 10 <= seen.length * 2) {
+      sig(-4, "Friends have real profiles", `${seen.length - thin} of ${seen.length} friends looked at have friends, groups or badges of their own.`);
+    }
+
+    const linked = friends.filter((f) => f.mutuals !== null);
+    const tied = linked.filter((f) => f.mutuals! >= 1).length;
+    if (linked.length >= 4 && tied * 10 >= linked.length * 6) {
+      sig(-8, "Friends know each other", `${tied} of ${linked.length} friends looked at are also friends with others on the list.`);
+    } else if (linked.length >= 4 && tied === 0) {
+      sig(6, "Friends don't know each other", `None of the ${linked.length} friends looked at are friends with anyone else on the list.`);
+    }
+  }
+
+  if (banned.length >= 2 && banned.length * 4 >= raw.named.length) {
+    sig(6, "Many banned friends", `${banned.length} of ${raw.named.length} friends are banned accounts.`);
+  }
+  if (alike.length) {
+    const names = alike.slice(0, 3).map((i) => info.get(i).name).join(", ");
+    sig(8, "Friends with near-identical usernames", `${names}${alike.length > 3 ? " and others" : ""}.`);
+  }
+
+  signals.sort((a, b) => Math.abs(b.points) - Math.abs(a.points));
+  return {
+    friendCount: n,
+    hidden: raw.hidden,
+    named: raw.named.length,
+    profiled: friends.length,
+    medianAgeDays: n ? ages[Math.floor(n / 2)] : null,
+    signals,
+    friends,
+    links,
+  };
+}
+
+/**
+ * A normal lookup plus the friends analysis. The deep score is the normal
+ * score moved by the web signals.
+ */
+async function deepLookup(query: string) {
+  const { cached: _cached, ...result } = await cachedLookup(query, false);
+  const user = result.user;
+  const raw = await deepCollect(user);
+  if (raw === null) return { ...result, deep: { friendCount: null, note: "This account's friends list isn't visible." } };
+  if (!raw.ids.length) {
+    return { ...result, deep: { friendCount: 0, hidden: raw.hidden, note: "This account has no friends to look at." } };
+  }
+  const web = webSignals(user, raw);
+  let total = Math.max(0, Math.min(100, result.score + web.signals.reduce((s, x) => s + x.points, 0)));
+  if (user.hasVerifiedBadge) total = Math.min(total, 10);
+  const [verdict, summary] = verdictOf(total);
+  return { ...result, deep: { ...web, score: total, verdict, summary } };
+}
+
+// ---------------------------------------------------------------------------
 // Cache + first-line rate limit (per warm isolate; best-effort, resets on cold
 // start). The limits that must hold live in Postgres: see admit() below.
 // ---------------------------------------------------------------------------
@@ -546,9 +933,21 @@ const hits = new Map<string, number[]>();
 const cacheKey = (query: string) => query.trim().toLowerCase().replace(/^@/, "");
 const isPartial = (result: Json) => result.notes.some((n: string) => n.includes("429"));
 
-function cacheGet(query: string): Json | null {
-  const hit = cache.get(cacheKey(query));
+/** A cached result that hasn't expired. Deep checks live under their own prefix. */
+function cacheGet(query: string, prefix = ""): Json | null {
+  const hit = cache.get(prefix + cacheKey(query));
   return hit && Date.now() / 1000 - hit[0] < CACHE_TTL ? hit[1] : null;
+}
+
+async function cachedDeep(query: string) {
+  const hit = cacheGet(query, "deep:");
+  if (hit) return { ...hit, cached: true };
+  const result = await deepLookup(query);
+  const now = Date.now() / 1000;
+  for (const k of [cacheKey(query), String(result.user.id), (result.user.name ?? "").toLowerCase()]) {
+    cache.set(`deep:${k}`, [now, result]);
+  }
+  return { ...result, cached: false };
 }
 
 async function cachedLookup(query: string, fresh: boolean) {
@@ -676,12 +1075,21 @@ const migrationMissing = (e: unknown) => e instanceof Error && e.message.startsW
  * Pro is exempt from the shared limits: one abusive network or a busy day
  * can't take a paying customer's lookups away.
  */
-async function admit(c: Caller): Promise<Admission> {
-  const pro = c.plan === "pro";
+async function admit(c: Caller, kind: "lookup" | "deep" = "lookup"): Promise<Admission> {
+  const pro = c.plan === "pro", deep = kind === "deep";
   const burst = [{ key: `ip:${c.network}`, limit: RATE_LIMIT_PER_MIN, window: 60 }];
-  if (c.plan !== "guest") burst.push({ key: c.subject, limit: RATE_LIMIT_PER_MIN, window: 60 });
-  if (!pro) burst.push({ key: "global", limit: GLOBAL_PER_MIN, window: 60 });
-  const daily = [{ key: c.subject, limit: LIMITS[c.plan] }];
+  if (deep) {
+    // A deep check costs Roblox as much as several lookups, and Roblox's own
+    // limits don't care who is paying, so the site-wide brake covers Pro too.
+    burst.push({ key: `deep:${c.subject}`, limit: DEEP_PER_MIN, window: 60 });
+    burst.push({ key: "global:deep", limit: DEEP_GLOBAL_PER_MIN, window: 60 });
+  } else {
+    if (c.plan !== "guest") burst.push({ key: c.subject, limit: RATE_LIMIT_PER_MIN, window: 60 });
+    if (!pro) burst.push({ key: "global", limit: GLOBAL_PER_MIN, window: 60 });
+  }
+  const own = deep ? { key: `deep:${c.subject}`, limit: DEEP_LIMITS[c.plan] } : { key: c.subject, limit: LIMITS[c.plan] };
+  const tooMany = { ok: false as const, code: "quota", error: deep ? deepQuotaMessage(c.plan) : quotaMessage(c.plan) };
+  const daily = [own];
   if (!pro) {
     daily.push({ key: `net:${c.network}`, limit: IP_DAILY_LIMIT });
     daily.push({ key: "global", limit: GLOBAL_DAILY_LIMIT });
@@ -697,19 +1105,17 @@ async function admit(c: Caller): Promise<Admission> {
     if (rateLimited(`lookup:${c.network}`, RATE_LIMIT_PER_MIN)) {
       return { ok: false, code: "rate", error: "Slow down: too many lookups this minute." };
     }
-    const used = await db("rpc/consume_lookup", { method: "POST", body: { p_subject: c.subject, p_limit: LIMITS[c.plan] } });
-    return used === null
-      ? { ok: false, code: "quota", error: quotaMessage(c.plan) }
-      : { ok: true, used, taken: [c.subject] };
+    const used = await db("rpc/consume_lookup", { method: "POST", body: { p_subject: own.key, p_limit: own.limit } });
+    return used === null ? tooMany : { ok: true, used, taken: [own.key] };
   }
   if (res.ok) return { ok: true, used: res.used, taken: daily.map((d) => d.key) };
   if (res.reason === "burst") {
-    return burst[res.index].key === "global"
+    return burst[res.index].key.startsWith("global")
       ? { ok: false, code: "busy", error: "The checker is busy right now. Try again in a minute." }
       : { ok: false, code: "rate", error: "Slow down: too many lookups this minute." };
   }
   const full = daily[res.index].key;
-  if (full === c.subject) return { ok: false, code: "quota", error: quotaMessage(c.plan) };
+  if (full === own.key) return tooMany;
   if (full === "global") {
     return { ok: false, code: "global", error: "Today's free lookups are used up across the site. Pro accounts aren't affected, or come back tomorrow." };
   }
@@ -726,14 +1132,25 @@ async function refund(c: Caller, taken: string[]): Promise<void> {
     if (allowed) await db("rpc/refund_lookups", { method: "POST", body: { p_subjects: taken } });
   } catch (e) {
     if (!migrationMissing(e)) throw e;
-    await db("rpc/refund_lookup", { method: "POST", body: { p_subject: c.subject } });
+    await db("rpc/refund_lookup", { method: "POST", body: { p_subject: taken[0] } });
   }
 }
 
-async function usedToday(c: Caller): Promise<number> {
+async function usedToday(subject: string): Promise<number> {
   const day = new Date().toISOString().slice(0, 10);
-  const rows = await db(`usage?subject=eq.${encodeURIComponent(c.subject)}&day=eq.${day}&select=count`);
+  const rows = await db(`usage?subject=eq.${encodeURIComponent(subject)}&day=eq.${day}&select=count`);
   return rows?.[0]?.count ?? 0;
+}
+
+function deepQuota(c: Caller, used: number) {
+  const limit = DEEP_LIMITS[c.plan];
+  return { limit, used: Math.min(used, limit), remaining: Math.max(0, limit - used) };
+}
+
+function deepQuotaMessage(plan: Plan): string {
+  const n = DEEP_LIMITS[plan];
+  if (plan === "pro") return `You've used today's ${n} deep checks. They reset at 00:00 UTC.`;
+  return `You've used today's ${n === 1 ? "deep check" : `${n} deep checks`}. Pro gets ${DEEP_LIMITS.pro} a day, or come back tomorrow.`;
 }
 
 function quota(c: Caller, used: number) {
@@ -786,29 +1203,64 @@ Deno.serve(async (req) => {
     const caller = ACCOUNTS ? await identify(req, network) : null;
     if (url.searchParams.has("quota")) {
       if (!caller) return json(200, { accounts: false });
-      return json(200, { accounts: true, ...quota(caller, await usedToday(caller)), limits: LIMITS });
+      const [used, deepUsed] = await Promise.all([usedToday(caller.subject), usedToday(`deep:${caller.subject}`)]);
+      return json(200, {
+        accounts: true,
+        ...quota(caller, used),
+        deep: deepQuota(caller, deepUsed),
+        limits: LIMITS,
+        deepLimits: DEEP_LIMITS,
+      });
     }
 
     const q = url.searchParams.get("q") ?? "";
     const fresh = url.searchParams.get("fresh") === "1";
+    const deep = url.searchParams.get("deep") === "1";
     if (!q.trim()) return json(400, { error: "Missing ?q=username-or-id" });
     if (q.length > 40) return json(400, { error: "Query too long" });
     if (!caller) {
       if (rateLimited(`lookup:${network}`, RATE_LIMIT_PER_MIN)) {
         return json(429, { error: "Slow down: too many lookups this minute.", code: "rate" });
       }
-      return json(200, await cachedLookup(q, fresh));
+      return json(200, deep ? await cachedDeep(q) : await cachedLookup(q, fresh));
+    }
+
+    if (deep) {
+      const deepKey = `deep:${caller.subject}`;
+      const both = async () => ({
+        quota: quota(caller, await usedToday(caller.subject)),
+        deepQuota: deepQuota(caller, await usedToday(deepKey)),
+      });
+      if (DEEP_LIMITS[caller.plan] < 1) {
+        const error = caller.plan === "guest" ? "Deep check needs an account. A free one gets " +
+          `${DEEP_LIMITS.free} a day.` : "Deep check isn't part of this plan.";
+        return json(403, { error, code: "deep_plan", ...(await both()) });
+      }
+      // Like lookups: a cached deep check is free.
+      const hit = cacheGet(q, "deep:");
+      if (hit) return json(200, { ...hit, cached: true, ...(await both()) });
+      const pass = await admit(caller, "deep");
+      if (!pass.ok) return json(429, { error: pass.error, code: pass.code, ...(await both()) });
+      try {
+        const result = await cachedDeep(q);
+        // No friends, or a hidden list: there was nothing to analyse, so it isn't counted.
+        if (!result.deep.friendCount) await refund(caller, pass.taken);
+        return json(200, { ...result, ...(await both()) });
+      } catch (e) {
+        await refund(caller, pass.taken).catch((err) => console.error("refund failed", err));
+        throw e;
+      }
     }
 
     // Cached results are free. Skipping the cache is a Pro feature, except that
     // anyone may re-run a result Roblox rate-limited part of.
     const hit = cacheGet(q);
     if (hit && !(fresh && (caller.plan === "pro" || isPartial(hit)))) {
-      return json(200, { ...hit, cached: true, quota: quota(caller, await usedToday(caller)) });
+      return json(200, { ...hit, cached: true, quota: quota(caller, await usedToday(caller.subject)) });
     }
     const pass = await admit(caller);
     if (!pass.ok) {
-      const used = pass.code === "quota" ? LIMITS[caller.plan] : await usedToday(caller);
+      const used = pass.code === "quota" ? LIMITS[caller.plan] : await usedToday(caller.subject);
       return json(429, { error: pass.error, code: pass.code, quota: quota(caller, used) });
     }
     try {
