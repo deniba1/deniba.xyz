@@ -40,17 +40,18 @@ const App = (() => {
     return data;
   }
 
-  // Who is looking at the page: {hosted, user, plan, profile}. plan is
-  // 'guest' | 'free' | 'pro', or 'self' when self-hosted. It only drives what
-  // the page shows; the server decides what each plan may actually do.
+  // Who is looking at the page: {hosted, user, plan, admin, profile}. plan is
+  // 'guest' | 'free' | 'pro', or 'self' when self-hosted; an admin counts as
+  // 'pro' with admin set. It only drives what the page shows; the server
+  // decides what each account may actually do.
   async function loadState() {
-    if (!hosted) return { hosted, user: null, plan: 'self', profile: null };
+    if (!hosted) return { hosted, user: null, plan: 'self', admin: false, profile: null };
     const s = await session();
-    if (!s) return { hosted, user: null, plan: 'guest', profile: null };
-    const { data: profile } = await sb.from('profiles')
-      .select('plan,subscription_status,current_period_end,cancel_at_period_end,stripe_customer_id')
-      .maybeSingle();
-    return { hosted, user: s.user, plan: profile?.plan === 'pro' ? 'pro' : 'free', profile: profile ?? null };
+    if (!s) return { hosted, user: null, plan: 'guest', admin: false, profile: null };
+    // '*' rather than a column list: is_admin only exists once the admin migration has run.
+    const { data: profile } = await sb.from('profiles').select('*').maybeSingle();
+    const admin = profile?.is_admin === true;
+    return { hosted, user: s.user, plan: admin || profile?.plan === 'pro' ? 'pro' : 'free', admin, profile: profile ?? null };
   }
 
   function paintHeader(state) {
@@ -59,7 +60,7 @@ const App = (() => {
     if (!state.hosted) { link.hidden = true; return; }
     if (state.user) {
       link.classList.remove('btn', 'small');
-      link.innerHTML = `Account <span class="badge ${state.plan === 'pro' ? 'pro' : ''}">${state.plan === 'pro' ? 'Pro' : 'Free'}</span>`;
+      link.innerHTML = `Account <span class="badge ${state.plan === 'pro' ? 'pro' : ''}">${state.admin ? 'Admin' : state.plan === 'pro' ? 'Pro' : 'Free'}</span>`;
     }
   }
 
@@ -108,7 +109,7 @@ const App = (() => {
   if (!hosted) for (const el of document.querySelectorAll('[data-hosted-only]')) el.hidden = true;
   // Never rejects: if Supabase can't be reached the page still works as a guest.
   const ready = loadState()
-    .catch(() => ({ hosted, user: null, plan: 'guest', profile: null }))
+    .catch(() => ({ hosted, user: null, plan: 'guest', admin: false, profile: null }))
     .then((state) => {
       paintHeader(state);
       adsAllowed = state.plan === 'guest' || state.plan === 'free';

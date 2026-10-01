@@ -7,6 +7,11 @@ window.SITE = {
   supabaseAnonKey: "sb_publishable_zkNpkjvBKQeCQ7SI_Z1HLw_TIFvRNz9",   // the anon / publishable key, not the service-role key
   googleLogin: true,    // show "Continue with Google" (enable the provider in Supabase first)
 
+  // Sign-in shorthand: with this set to your domain, a name typed without an
+  // "@" in the email box signs in as <name>@<domain>. Sign-up always needs a
+  // full address.
+  usernameDomain: "deniba.xyz",
+
   // Cloudflare Turnstile site key: adds a "verify you are human" check to sign-up,
   // sign-in and password reset. Set it here AND switch on CAPTCHA protection in
   // Supabase (Authentication -> Attack Protection) with the matching secret key.

@@ -9,8 +9,8 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon.png" type="image/png" sizes="96x96">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="assets/style.css?v=8">
-<script src="assets/theme.js?v=8"></script>
+<link rel="stylesheet" href="assets/style.css??v=9">
+<script src="assets/theme.js??v=9"></script>
 </head>
 <body>
 <header class="site-header">
@@ -59,7 +59,7 @@
         <div class="divider">or</div>
       </div>
       <label for="email" style="margin-top:0">Email</label>
-      <input type="email" id="email" autocomplete="email" required>
+      <input type="text" inputmode="email" autocapitalize="none" spellcheck="false" id="email" autocomplete="username" required>
       <label for="password">Password</label>
       <input type="password" id="password" minlength="8" required autocomplete="current-password">
       <label class="check" id="agreeRow" hidden>
@@ -93,6 +93,11 @@
         <dt>Today</dt><dd><span id="accUsage">…</span><div class="meter"><i id="accMeter" style="width:0"></i></div>
           <div class="muted small" id="accDeep" style="margin-top:6px"></div></dd>
       </dl>
+    </div>
+    <div class="card" id="adminCard" hidden>
+      <h3>Site today <span class="badge pro">Admin</span></h3>
+      <dl class="kv" id="adminStats"><dt>Loading…</dt><dd></dd></dl>
+      <p class="notes" style="margin:12px 0 0">Counts only. Days run from 00:00 UTC. On the checker page, switch on “Debug” to see how each lookup ran.</p>
     </div>
     <div class="card">
       <h3>Billing</h3>
@@ -136,8 +141,8 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<script src="assets/config.js?v=8"></script>
-<script src="assets/app.js?v=8"></script>
+<script src="assets/config.js??v=9"></script>
+<script src="assets/app.js??v=9"></script>
 <script>
 (async () => {
   const { esc, sb, cfg } = App;
@@ -203,7 +208,11 @@
   $('#authForm').addEventListener('submit', (e) => {
     e.preventDefault();
     notice('');
-    const email = $('#email').value.trim(), password = $('#password').value;
+    const typed = $('#email').value.trim(), password = $('#password').value;
+    // Signing in accepts a bare username for accounts on the site's own domain
+    // (config: usernameDomain); creating an account always needs a real address.
+    const email = mode === 'in' && cfg.usernameDomain && !typed.includes('@') ? `${typed}@${cfg.usernameDomain}` : typed;
+    if (!/^\S+@\S+\.\S+$/.test(email)) { notice('Enter a valid email address.', 'warn'); $('#email').focus(); return; }
     busy($('#authGo'), async () => {
       const captcha = captchaToken();
       let data;
@@ -224,7 +233,7 @@
 
   $('#forgot').addEventListener('click', () => {
     const email = $('#email').value.trim();
-    if (!email) { notice('Type your email above first, then press “Forgot your password?” again.', 'warn'); $('#email').focus(); return; }
+    if (!/^\S+@\S+\.\S+$/.test(email)) { notice('Type your email above first, then press “Forgot your password?” again.', 'warn'); $('#email').focus(); return; }
     busy($('#forgot'), async () => {
       const captcha = captchaToken();
       try {
@@ -256,23 +265,55 @@
     const p = state.profile || {};
     const pro = state.plan === 'pro';
     $('#accEmail').textContent = state.user.email;
-    $('#accPlan').innerHTML = `<span class="badge ${pro ? 'pro' : ''}">${pro ? 'Pro' : 'Free'}</span>`;
+    $('#accPlan').innerHTML = `<span class="badge ${pro ? 'pro' : ''}">${state.admin ? 'Admin' : pro ? 'Pro' : 'Free'}</span>`;
 
     let text = 'You\'re on the Free plan.';
-    if (pro && p.subscription_status === 'past_due') text = 'Your last payment didn\'t go through. Update your payment method under “Manage billing” to keep Pro.';
+    if (state.admin) text = 'Admin account: limits don\'t apply and no subscription is needed.';
+    else if (pro && p.subscription_status === 'past_due') text = 'Your last payment didn\'t go through. Update your payment method under “Manage billing” to keep Pro.';
     else if (pro && p.cancel_at_period_end && p.current_period_end) text = `Pro is cancelled and ends on ${longDate(p.current_period_end)}. You can resume it under “Manage billing”.`;
     else if (pro && p.current_period_end) text = `Pro renews on ${longDate(p.current_period_end)}.`;
     else if (pro) text = 'You\'re on Pro.';
     $('#billingText').textContent = text;
-    $('#upgradeBtn').hidden = pro;
+    $('#upgradeBtn').hidden = pro;  // admins count as Pro here
     $('#portalBtn').hidden = !p.stripe_customer_id;
     show('vAccount');
 
     App.call('check?quota=1').then((qt) => {
+      if (qt.unlimited) {
+        $('#accUsage').textContent = 'No lookup or deep check limits';
+        $('#accMeter').parentElement.hidden = true;
+        return;
+      }
       $('#accUsage').textContent = `${qt.used.toLocaleString()} of ${qt.limit.toLocaleString()} lookups used · resets 00:00 UTC`;
       $('#accMeter').style.width = `${Math.min(100, (qt.used / qt.limit) * 100)}%`;
       if (qt.deep) $('#accDeep').textContent = `${qt.deep.used.toLocaleString()} of ${qt.deep.limit.toLocaleString()} deep checks used`;
     }).catch(() => { $('#accUsage').textContent = 'Usage is unavailable right now.'; });
+    if (state.admin) showAdmin();
+  }
+
+  // Site-wide numbers, for admins. The server refuses this to anyone else.
+  function showAdmin() {
+    $('#adminCard').hidden = false;
+    const list = $('#adminStats');
+    const rows = (pairs) => list.replaceChildren(...pairs.flatMap(([k, v]) => {
+      const dt = document.createElement('dt'), dd = document.createElement('dd');
+      dt.textContent = k; dd.textContent = v;
+      return [dt, dd];
+    }));
+    const num = (v) => Number(v ?? 0).toLocaleString();
+    const day = (d) => `${num(d.lookups)} lookups (${num(d.accountLookups)} by ${num(d.activeAccounts)} accounts, ${num(d.guestLookups)} by ${num(d.guestNetworks)} guest networks) · ${num(d.deepChecks)} deep checks`;
+    App.call('check?stats=1').then((s) => {
+      const L = s.limits;
+      rows([
+        ['Accounts', `${num(s.accounts.free)} free · ${num(s.accounts.pro)} Pro · ${num(s.admins)} admin`],
+        ['Today', day(s.today)],
+        ['Yesterday', day(s.yesterday)],
+        ['Shared cap', `${num(s.today.nonProTotal)} of ${num(L.siteNonProPerDay)} non-Pro lookups used today`],
+        ['Daily limits', `lookups ${L.lookups.guest} / ${L.lookups.free} / ${L.lookups.pro} · deep ${L.deep.guest} / ${L.deep.free} / ${L.deep.pro} (guest / free / Pro) · ${L.perNetworkPerDay} per network`],
+        ['Per minute', `${L.perMinute} per network or account · ${L.siteNonProPerMinute} site-wide non-Pro · ${L.siteDeepPerMinute} deep site-wide`],
+        ['Server', `badge check ${s.server.badgeCheck ? 'on' : 'off'} · ${num(s.server.cached)} results cached in this copy`],
+      ]);
+    }).catch((e) => rows([['Unavailable', e.message]]));
   }
 
   // After Stripe Checkout the webhook flips the plan a moment later; wait for it.

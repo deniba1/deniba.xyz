@@ -3,10 +3,13 @@
 // GET  ?q=<username|userId>[&fresh=1]  -> lookup JSON (+ quota when accounts are on)
 // GET  ?q=<username|userId>&deep=1     -> lookup JSON + "deep": the friends analysis
 // GET  ?quota=1                        -> the caller's plan and today's allowance
+// GET  ?stats=1                        -> admins only: accounts by plan, today's use
+//      &debug=1 on a lookup            -> admins only: adds "debug" (timings per Roblox call)
 // GET  ?health=1                       -> {ok, badgeCheck, accounts}
 //
 // Send `Authorization: Bearer <Supabase access token>` to be counted as that
 // account; without it the caller is a guest, counted by network address.
+// An account whose profile has is_admin set has no limits (see the admin migration).
 //
 // Secrets (set with `supabase secrets set` or in the dashboard):
 //   ROBLOX_COOKIE       optional .ROBLOSECURITY; enables the player-badge check
@@ -213,7 +216,7 @@ async function itemPrices(assetIds: number[]): Promise<[number, number]> {
 // ---------------------------------------------------------------------------
 // Data collection
 // ---------------------------------------------------------------------------
-type Result = { ok: true; data: Json } | { ok: false; error: string };
+type Result = ({ ok: true; data: Json } | { ok: false; error: string }) & { ms: number };
 
 async function collect(uid: number, username: string): Promise<Record<string, Result>> {
   const U = `https://users.roblox.com/v1/users/${uid}`;
@@ -354,11 +357,12 @@ async function collect(uid: number, username: string): Promise<Record<string, Re
   const worker = async () => {
     while (next < keys.length) {
       const k = keys[next++];
+      const began = Date.now();
       try {
-        out[k] = { ok: true, data: await tasks[k]() };
+        out[k] = { ok: true, data: await tasks[k](), ms: Date.now() - began };
       } catch (e) {
         const msg = e instanceof RobloxError ? e.message : `unexpected: ${e}`;
-        out[k] = { ok: false, error: msg };
+        out[k] = { ok: false, error: msg, ms: Date.now() - began };
       }
     }
   };
@@ -568,10 +572,23 @@ function verdictOf(total: number): [string, string] {
   return ["Likely main", "Strong history and activity for a primary account."];
 }
 
+// How the last run for each account went: timings and failures per Roblox
+// call. Kept beside the cache, never inside a result, and shown to admins only.
+const diagnostics = new Map<string, Json>();
+
 async function lookup(query: string) {
+  const began = Date.now();
   const user = await resolveUser(query);
   const uid: number = user.id;
+  const resolveMs = Date.now() - began;
   const data = await collect(uid, user.name ?? "");
+  if (diagnostics.size > 2000) diagnostics.clear();
+  diagnostics.set(String(uid), {
+    ranAt: new Date().toISOString(),
+    tookMs: Date.now() - began,
+    resolveMs,
+    calls: Object.entries(data).map(([key, v]) => ({ key, ok: v.ok, ms: v.ms, error: v.ok ? null : v.error })),
+  });
   const { total, verdict, summary, signals, ageDays } = score(user, data);
   const val = (k: string) => (data[k].ok ? (data[k] as { data: Json }).data : null);
   const notes = Object.entries(data)
@@ -911,7 +928,13 @@ function webSignals(user: Json, raw: DeepRaw, now = Date.now() / 1000) {
 async function deepLookup(query: string) {
   const { cached: _cached, ...result } = await cachedLookup(query, false);
   const user = result.user;
+  const began = Date.now();
   const raw = await deepCollect(user);
+  const run = diagnostics.get(String(user.id));
+  if (run) {
+    const unknown = raw ? [...raw.profiles.values()].flatMap((p) => [p.friends, p.robloxBadges, p.groups, p.links]).filter((v) => v === null).length : 0;
+    diagnostics.set(String(user.id), { ...run, deepMs: Date.now() - began, deepUnknownFields: unknown });
+  }
   if (raw === null) return { ...result, deep: { friendCount: null, note: "This account's friends list isn't visible." } };
   if (!raw.ids.length) {
     return { ...result, deep: { friendCount: 0, hidden: raw.hidden, note: "This account has no friends to look at." } };
@@ -939,8 +962,8 @@ function cacheGet(query: string, prefix = ""): Json | null {
   return hit && Date.now() / 1000 - hit[0] < CACHE_TTL ? hit[1] : null;
 }
 
-async function cachedDeep(query: string) {
-  const hit = cacheGet(query, "deep:");
+async function cachedDeep(query: string, fresh = false) {
+  const hit = fresh ? null : cacheGet(query, "deep:");
   if (hit) return { ...hit, cached: true };
   const result = await deepLookup(query);
   const now = Date.now() / 1000;
@@ -992,6 +1015,7 @@ interface Caller {
   plan: Plan;
   subject: string; // usage key: "u:<user id>" or "ip:<network hash>"
   network: string; // salted hash of the caller's network address
+  admin: boolean; // no limits, and may ask for debugging detail
 }
 
 class AuthError extends Error {}
@@ -1040,7 +1064,7 @@ async function identify(req: Request, network: string): Promise<Caller> {
   const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
   // supabase-js sends the project's public key as the bearer when nobody is signed in.
   if (!token || token === ANON_KEY || token.startsWith("sb_publishable_")) {
-    return { plan: "guest", subject: `ip:${network}`, network };
+    return { plan: "guest", subject: `ip:${network}`, network, admin: false };
   }
   const resp = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
     headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${token}` },
@@ -1052,10 +1076,20 @@ async function identify(req: Request, network: string): Promise<Caller> {
   }
   if (!resp.ok) throw new Error(`auth ${resp.status}: ${(await resp.text()).slice(0, 200)}`);
   const user = await resp.json();
-  const rows = await db(`profiles?id=eq.${encodeURIComponent(user.id)}&select=plan,current_period_end`);
+  const profile = `profiles?id=eq.${encodeURIComponent(user.id)}&select=plan,current_period_end`;
+  let rows: Json;
+  try {
+    rows = await db(`${profile},is_admin`);
+  } catch (e) {
+    // The is_admin column comes from the admin migration; without it, nobody is one.
+    if (!(e instanceof Error && e.message.startsWith("database 400"))) throw e;
+    rows = await db(profile);
+  }
   const p = rows?.[0];
+  const subject = `u:${user.id}`;
+  if (p?.is_admin === true) return { plan: "pro", subject, network, admin: true };
   const lapsed = p?.current_period_end && Date.parse(p.current_period_end) + PERIOD_GRACE_MS < Date.now();
-  return { plan: p?.plan === "pro" && !lapsed ? "pro" : "free", subject: `u:${user.id}`, network };
+  return { plan: p?.plan === "pro" && !lapsed ? "pro" : "free", subject, network, admin: false };
 }
 
 type Admission = { ok: true; used: number; taken: string[] } | { ok: false; code: string; error: string };
@@ -1143,6 +1177,7 @@ async function usedToday(subject: string): Promise<number> {
 }
 
 function deepQuota(c: Caller, used: number) {
+  if (c.admin) return { unlimited: true, limit: null, used, remaining: null };
   const limit = DEEP_LIMITS[c.plan];
   return { limit, used: Math.min(used, limit), remaining: Math.max(0, limit - used) };
 }
@@ -1157,6 +1192,7 @@ function quota(c: Caller, used: number) {
   const limit = LIMITS[c.plan];
   const reset = new Date();
   reset.setUTCHours(24, 0, 0, 0);
+  if (c.admin) return { plan: c.plan, admin: true, unlimited: true, limit: null, used, remaining: null, resetsAt: reset.toISOString() };
   return { plan: c.plan, limit, used: Math.min(used, limit), remaining: Math.max(0, limit - used), resetsAt: reset.toISOString() };
 }
 
@@ -1201,6 +1237,23 @@ Deno.serve(async (req) => {
       return json(429, { error: "Slow down: too many requests this minute.", code: "rate" });
     }
     const caller = ACCOUNTS ? await identify(req, network) : null;
+    if (url.searchParams.has("stats")) {
+      if (!caller?.admin) return json(403, { error: "Admins only.", code: "admin" });
+      return json(200, {
+        ...(await db("rpc/admin_stats", { method: "POST", body: {} })),
+        limits: {
+          lookups: LIMITS,
+          deep: DEEP_LIMITS,
+          perNetworkPerDay: IP_DAILY_LIMIT,
+          siteNonProPerDay: GLOBAL_DAILY_LIMIT,
+          perMinute: RATE_LIMIT_PER_MIN,
+          siteNonProPerMinute: GLOBAL_PER_MIN,
+          siteDeepPerMinute: DEEP_GLOBAL_PER_MIN,
+          requestsPerMinute: REQUESTS_PER_MIN,
+        },
+        server: { badgeCheck: Boolean(ROBLOX_COOKIE), cacheTtl: CACHE_TTL, cached: cache.size, deepSample: DEEP_SAMPLE },
+      });
+    }
     if (url.searchParams.has("quota")) {
       if (!caller) return json(200, { accounts: false });
       const [used, deepUsed] = await Promise.all([usedToday(caller.subject), usedToday(`deep:${caller.subject}`)]);
@@ -1223,6 +1276,22 @@ Deno.serve(async (req) => {
         return json(429, { error: "Slow down: too many lookups this minute.", code: "rate" });
       }
       return json(200, deep ? await cachedDeep(q) : await cachedLookup(q, fresh));
+    }
+
+    // Admins: no allowances, no shared limits, any result fresh on request, and
+    // on ?debug=1 how the run went. Roblox's own rate limits still apply.
+    if (caller.admin) {
+      const result = deep ? await cachedDeep(q, fresh) : await cachedLookup(q, fresh);
+      const debug = url.searchParams.get("debug") === "1"
+        ? {
+          debug: {
+            caller: { plan: caller.plan, admin: true, subject: caller.subject, network: caller.network },
+            cache: result.cached ? "hit" : "miss",
+            run: diagnostics.get(String(result.user.id)) ?? null,
+          },
+        }
+        : {};
+      return json(200, { ...result, quota: quota(caller, 0), ...(deep ? { deepQuota: deepQuota(caller, 0) } : {}), ...debug });
     }
 
     if (deep) {

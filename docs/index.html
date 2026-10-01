@@ -20,8 +20,8 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon.png" type="image/png" sizes="96x96">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="assets/style.css?v=8">
-<script src="assets/theme.js?v=8"></script>
+<link rel="stylesheet" href="assets/style.css??v=9">
+<script src="assets/theme.js??v=9"></script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -71,6 +71,7 @@
   <p class="quota" id="quota"></p>
   <div class="tools">
     <button type="button" class="chip" id="bulkToggle" aria-expanded="false" aria-controls="bulkPanel">Bulk check <span class="badge pro" id="bulkBadge" hidden>Pro</span></button>
+    <button type="button" class="chip" id="debugToggle" aria-pressed="false" hidden>Debug: off</button>
     <span id="recent" style="display:contents"></span>
   </div>
 
@@ -200,8 +201,8 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<script src="assets/config.js?v=8"></script>
-<script src="assets/app.js?v=8"></script>
+<script src="assets/config.js??v=9"></script>
+<script src="assets/app.js??v=9"></script>
 <script>
 (() => {
   const { esc, hosted } = App;
@@ -219,8 +220,12 @@
   let unlocked = !hosted;
 
   // One lookup against the backend: the Edge Function when hosted, server.py otherwise.
+  // Debug mode (admins, and self-hosted installs): ask the server how each run went.
+  let debugOn = false;
+  try { debugOn = localStorage.getItem('debug') === '1'; } catch {}
+
   async function lookup(name, fresh) {
-    const params = `q=${encodeURIComponent(name)}${fresh ? '&fresh=1' : ''}`;
+    const params = `q=${encodeURIComponent(name)}${fresh ? '&fresh=1' : ''}${debugOn ? '&debug=1' : ''}`;
     if (hosted) return App.call(`check?${params}`);
     const res = await fetch(`/api/lookup?${params}`);
     const data = await res.json();
@@ -230,6 +235,7 @@
 
   function paintQuota(qt) {
     if (!qt) return;
+    if (qt.unlimited) { $('#quota').textContent = 'Admin account: no lookup limits.'; return; }
     const left = `${n(qt.remaining)} of ${n(qt.limit)}`;
     $('#quota').innerHTML =
       qt.plan === 'guest' ? `${left} guest lookups left today. <a href="account.html#signup">Create a free account</a> for more.` :
@@ -350,7 +356,7 @@
   let deepLimits = null;               // {guest, free, pro}
 
   async function lookupDeep(name) {
-    const params = `q=${encodeURIComponent(name)}`;
+    const params = `q=${encodeURIComponent(name)}${debugOn ? '&debug=1' : ''}`;
     if (hosted) return App.call(`check?${params}&deep=1`);
     const res = await fetch(`/api/deep?${params}`);
     const data = await res.json();
@@ -358,7 +364,8 @@
     return data;
   }
 
-  const deepLeftText = () => hosted && deepLeft ? `${n(deepLeft.remaining)} of ${n(deepLeft.limit)} deep checks left today` : '';
+  const deepLeftText = () => !hosted || !deepLeft ? '' : deepLeft.unlimited ? 'No deep check limit' :
+    `${n(deepLeft.remaining)} of ${n(deepLeft.limit)} deep checks left today`;
 
   function paintDeepCard(name) {
     const card = $('#deepCard');
@@ -367,7 +374,7 @@
       <p class="muted" style="margin:0 0 12px">Looks past the profile at the account's friends: how old their accounts are,
       whether their profiles are real, and whether they know each other. An account surrounded by new, empty profiles is far
       more likely to be an alt.</p>`;
-    if (hosted && !(deepLeft && deepLeft.limit > 0)) {
+    if (hosted && !(deepLeft && (deepLeft.unlimited || deepLeft.limit > 0))) {
       card.innerHTML = `${intro}<div class="row"><a class="btn small" href="account.html#signup">Create a free account</a>
         <span class="muted small">Free accounts get ${n(deepLimits.free)} a day, Pro gets ${n(deepLimits.pro)}.</span></div>`;
     } else {
@@ -388,6 +395,7 @@
       if (r.deepQuota) deepLeft = r.deepQuota;
       paintQuota(r.quota);
       renderDeep(card, r);
+      paintDebug(r);
     } catch (e) {
       if (e.data?.deepQuota) deepLeft = e.data.deepQuota;
       const pro = isDailyLimit(e) && e.data?.quota?.plan !== 'pro' ? ' <a href="pricing.html">See Pro</a>' : '';
@@ -555,6 +563,34 @@
     wireWeb(card, r);
   }
 
+  // How the run went, call by call. Only present when the server sent it.
+  function paintDebug(r) {
+    document.getElementById('debugCard')?.remove();
+    const d = r.debug;
+    if (!d) return;
+    const run = d.run, who = d.caller;
+    const facts = [
+      who && `caller: ${who.plan}${who.admin ? ' (admin)' : ''}`,
+      `cache: ${d.cache}`,
+      run && `ran ${run.ranAt}`,
+      run && `total ${n(run.tookMs)} ms (finding the user ${n(run.resolveMs)} ms)`,
+      run?.deepMs != null && `deep check ${n(run.deepMs)} ms, ${n(run.deepUnknownFields)} friend details unavailable`,
+    ].filter(Boolean);
+    const calls = [...(run?.calls ?? [])].sort((a, b) => b.ms - a.ms);
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.id = 'debugCard';
+    card.innerHTML = `
+      <h3>Debug</h3>
+      <p class="notes" style="margin:0 0 10px">${facts.map(esc).join(' · ')}</p>
+      ${calls.length ? `<div class="web-scroll"><table class="bulk">
+        <thead><tr><th>Roblox call</th><th>Result</th><th>Time</th></tr></thead>
+        <tbody>${calls.map(c => `<tr><td>${esc(c.key)}</td><td${c.ok ? '' : ' style="color:var(--bad)"'}>${c.ok ? 'ok' : esc(c.error)}</td><td class="score">${n(c.ms)} ms</td></tr>`).join('')}</tbody>
+      </table></div>` : '<p class="muted" style="margin:0">No run on record for this account in this copy of the server (the result came from its cache).</p>'}
+      ${who ? `<p class="notes" style="margin:10px 0 0">subject ${esc(who.subject)} · network ${esc(who.network)}</p>` : ''}`;
+    out.append(card);
+  }
+
   // Shown instead of a result when today's allowance is used up.
   function renderLimit(e) {
     const plan = e.data?.quota?.plan;
@@ -580,6 +616,7 @@
       await App.ready;
       const data = await lookup(name, fresh);
       render(data);
+      paintDebug(data);
       App.showAd('bottom');
       paintQuota(data.quota);
       quotaReady.then(() => paintDeepCard(data.user.name));
@@ -676,6 +713,18 @@
     $('#bulkBadge').hidden = !hosted;
     $('#bulkForm').hidden = !unlocked;
     $('#bulkLocked').hidden = unlocked;
+    // Debug is for admins; a self-hosted install has no accounts, so it's open there.
+    const debugToggle = $('#debugToggle');
+    const paintDebugToggle = () => {
+      debugToggle.textContent = `Debug: ${debugOn ? 'on' : 'off'}`;
+      debugToggle.setAttribute('aria-pressed', String(debugOn));
+    };
+    debugToggle.addEventListener('click', () => {
+      debugOn = !debugOn;
+      try { localStorage.setItem('debug', debugOn ? '1' : '0'); } catch {}
+      paintDebugToggle();
+    });
+    if (state.admin || !hosted) { debugToggle.hidden = false; paintDebugToggle(); } else debugOn = false;
     if (!hosted) return;
     return App.call('check?quota=1').then((qt) => {
       paintQuota(qt);

@@ -57,8 +57,8 @@ Do it in this order. Use Stripe **test mode** until the last step.
 ### 1. Supabase: database
 
 Dashboard → **SQL Editor** → paste and run each file in `supabase/migrations/`,
-oldest first: `20260929000000_freemium.sql`, then
-`20261001000000_rate_limits.sql`. (Or `supabase db push`.) Each is safe to run
+oldest first: `20260929000000_freemium.sql`, `20261001000000_rate_limits.sql`,
+then `20261002000000_admin.sql`. (Or `supabase db push`.) Each is safe to run
 twice. When a later change adds a migration, run it *before* redeploying the
 functions.
 
@@ -219,7 +219,7 @@ content changes, bump its `<lastmod>` in the sitemap.
 ### Changing the shared files
 
 The pages load `style.css`, `theme.js`, `config.js` and `app.js` with a version
-on the end (`assets/style.css?v=8`). Browsers keep those files for hours, so
+on the end (`assets/style.css?v=9`). Browsers keep those files for hours, so
 whenever you change one of them, raise the number in every page in `docs/`
 (search for `?v=`). Otherwise visitors get the new page with the old styles or
 settings until their cache expires.
@@ -291,6 +291,32 @@ the username or description literally mentioning an alt. The weights live in
 This is a heuristic on public data only. A quiet, private, new-ish main will
 look like an alt; a well-dressed alt with friends will look like a main.
 
+## Admin accounts
+
+An admin has no lookup or deep-check limits, sees no ads, can refresh any
+result, and gets two debugging tools: a **Debug** switch on the checker page
+(how long each Roblox call took, what failed, whether the result came from
+cache) and a **Site today** panel on the account page (accounts by plan,
+today's and yesterday's use, the limits in force). Roblox's own rate limits
+still apply.
+
+Being an admin is a flag on the account's profile row, `is_admin`, which only
+the database owner can set. Nothing about it lives in the site's files: this
+repository is public, so **never put a password or key in it**.
+
+1. Run `20261002000000_admin.sql` and redeploy the `check` function.
+2. Create the account: Supabase → **Authentication → Users → Add user →
+   Create new user**, with an email, a password, and *Auto Confirm User* ticked.
+3. Make it an admin in the **SQL Editor**:
+   ```sql
+   update public.profiles set is_admin = true
+   where id = (select id from auth.users where email = 'the-account@example.com');
+   ```
+   To take it away, run the same with `false`.
+
+`usernameDomain` in `config.js` lets an account on your own domain sign in with
+just the part before the `@`.
+
 ## Badge timing
 
 Game badges only count if they were earned at a human pace. The lookup reads
@@ -333,6 +359,7 @@ the Python server) returns JSON with `user`, `stats`, `score`, `verdict`,
 `signals`, `notes` (anything that couldn't be checked) and, when accounts are
 on, `quota`. `&fresh=1` skips the cache (Pro). `&deep=1` adds `deep` (the friends analysis)
 and `deepQuota`; on the Python server use `/api/deep?q=`. `?quota=1` returns the caller's
-plan and allowance; `?health=1` (or `/api/health`) reports whether the badge
+plan and allowance; For admins, `&debug=1` adds `debug` and `?stats=1` returns site-wide numbers.
+`?health=1` (or `/api/health`) reports whether the badge
 check is enabled. When the allowance is used up the reply is HTTP 429 with
 `code: "quota"`.

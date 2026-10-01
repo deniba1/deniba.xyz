@@ -284,12 +284,14 @@ def collect(uid, username=""):
     }
 
     def run(fn):
+        began = time.time()
+        ms = lambda: int((time.time() - began) * 1000)
         try:
-            return {"ok": True, "data": fn()}
+            return {"ok": True, "data": fn(), "ms": ms()}
         except RobloxError as e:
-            return {"ok": False, "error": str(e)}
+            return {"ok": False, "error": str(e), "ms": ms()}
         except Exception as e:  # malformed response etc.
-            return {"ok": False, "error": f"unexpected: {e.__class__.__name__}: {e}"}
+            return {"ok": False, "error": f"unexpected: {e.__class__.__name__}: {e}", "ms": ms()}
 
     with ThreadPoolExecutor(max_workers=4) as pool:
         futures = {k: pool.submit(run, fn) for k, fn in tasks.items()}
@@ -546,10 +548,25 @@ def verdict_of(total):
     return "Likely main", "Strong history and activity for a primary account."
 
 
+# How the last run for each account went: timings and failures per Roblox call.
+# Kept beside the cache, never inside a result; /api/lookup?debug=1 shows it.
+_diagnostics = {}
+
+
 def lookup(query):
+    began = time.time()
     user = resolve_user(query)
     uid = user["id"]
+    resolve_ms = int((time.time() - began) * 1000)
     data = collect(uid, user.get("name") or "")
+    if len(_diagnostics) > 2000:
+        _diagnostics.clear()
+    _diagnostics[str(uid)] = {
+        "ranAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "tookMs": int((time.time() - began) * 1000),
+        "resolveMs": resolve_ms,
+        "calls": [{"key": k, "ok": v["ok"], "ms": v["ms"], "error": None if v["ok"] else v["error"]} for k, v in data.items()],
+    }
     total, verdict, summary, signals = score(user, data)
     created = parse_date(user.get("created"))
     age_days = (datetime.now(timezone.utc) - created).days if created else None
@@ -819,7 +836,12 @@ def deep_lookup(query):
     result = dict(cached_lookup(query))
     result.pop("cached", None)
     user = dict(result["user"])
+    began = time.time()
     raw = deep_collect(user)
+    run = _diagnostics.get(str(user["id"]))
+    if run:
+        unknown = sum(1 for p in raw["profiles"].values() for k in ("friends", "robloxBadges", "groups", "links") if p[k] is None) if raw else 0
+        _diagnostics[str(user["id"])] = dict(run, deepMs=int((time.time() - began) * 1000), deepUnknownFields=unknown)
     if raw is None:
         result["deep"] = {"friendCount": None, "note": "This account's friends list isn't visible."}
         return result
@@ -914,9 +936,11 @@ def handle_api(path, query_string, ip):
     if rate_limited(ip):
         return 429, {"error": "Slow down: too many lookups this minute."}
     try:
-        if route == "/api/deep":
-            return 200, cached_deep(q)
-        return 200, cached_lookup(q, fresh)
+        result = cached_deep(q) if route == "/api/deep" else cached_lookup(q, fresh)
+        if qs.get("debug", ["0"])[0] == "1":
+            result["debug"] = {"cache": "hit" if result["cached"] else "miss",
+                               "run": _diagnostics.get(str(result["user"]["id"]))}
+        return 200, result
     except NotFound as e:
         return 404, {"error": str(e)}
     except RobloxError as e:
