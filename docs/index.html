@@ -3,11 +3,42 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Roblox Alt Checker</title>
-<meta name="description" content="Look up any Roblox username and see how likely it is to be an alt account, scored from public profile data with every signal explained.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f8cff'/%3E%3Cpath d='M9 16.5l4.5 4.5L23 11.5' fill='none' stroke='%23fff' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<title>Roblox Alt Checker – Is That Account an Alt? Free Lookup</title>
+<meta name="description" content="Free Roblox alt account checker. Enter any username or user ID and get an alt score from public profile data, with every signal explained. No Roblox login.">
+<link rel="canonical" href="https://deniba.xyz/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Roblox Alt Checker">
+<meta property="og:title" content="Roblox Alt Checker – Is That Account an Alt? Free Lookup">
+<meta property="og:description" content="Free Roblox alt account checker. Enter any username or user ID and get an alt score from public profile data, with every signal explained. No Roblox login.">
+<meta property="og:url" content="https://deniba.xyz/">
+<meta property="og:image" content="https://deniba.xyz/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Roblox Alt Checker: is that Roblox account an alt?">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.png" type="image/png" sizes="96x96">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="assets/style.css">
 <script src="assets/theme.js"></script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Roblox Alt Checker",
+  "url": "https://deniba.xyz/",
+  "description": "Enter a Roblox username or user ID and get a score estimating how likely the account is to be an alt, based on public profile data, with every signal explained.",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Any",
+  "browserRequirements": "Requires JavaScript",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  }
+}
+</script>
 </head>
 <body>
 <header class="site-header">
@@ -63,19 +94,84 @@
 
   <div class="ad" data-slot="bottom" data-lazy hidden></div>
 
-  <section class="how" aria-label="How it works">
-    <div class="card">
-      <h3>Public data only</h3>
-      <p>Account age, friends, followers, badges, favorites, inventory, groups, avatar and naming patterns. Nothing private, no login to Roblox.</p>
+  <section class="info" aria-labelledby="howTitle">
+    <h2 id="howTitle">How the Roblox alt checker works</h2>
+    <div class="how">
+      <div class="card">
+        <h3>Public data only</h3>
+        <p>Account age, friends, followers, badges, favorites, inventory, groups, avatar and naming patterns. Nothing private, no login to Roblox.</p>
+      </div>
+      <div class="card">
+        <h3>Every point explained</h3>
+        <p>Each signal shows how many points it added or removed, so you can see exactly why an account got its score.</p>
+      </div>
+      <div class="card">
+        <h3>A hint, not proof</h3>
+        <p>It can't see Robux, IP addresses or private data. A quiet new main can look like an alt, so don't accuse anyone on a score alone.</p>
+      </div>
     </div>
-    <div class="card">
-      <h3>Every point explained</h3>
-      <p>Each signal shows how many points it added or removed, so you can see exactly why an account got its score.</p>
-    </div>
-    <div class="card">
-      <h3>A hint, not proof</h3>
-      <p>It can't see Robux, IP addresses or private data. A quiet new main can look like an alt, so don't accuse anyone on a score alone.</p>
-    </div>
+  </section>
+
+  <section class="card explain" aria-labelledby="scoreTitle">
+    <h2 id="scoreTitle">How the alt score is calculated</h2>
+    <p>Every account starts at 35 out of 100. Each thing the checker finds on the public profile moves the score up
+      (more like an alt) or down (more like a main account), and the total is kept between 0 and 100.</p>
+    <table class="verdicts">
+      <thead><tr><th>Score</th><th>Verdict</th><th>What it means</th></tr></thead>
+      <tbody>
+        <tr><td>70–100</td><td style="color:var(--bad)">Likely alt</td><td>Most signals point to a throwaway or secondary account.</td></tr>
+        <tr><td>50–69</td><td style="color:var(--warn)">Possibly alt</td><td>Mixed signals; leans toward an alt or a very inactive account.</td></tr>
+        <tr><td>30–49</td><td style="color:var(--accent)">Probably main</td><td>Looks like a real, moderately active account.</td></tr>
+        <tr><td>0–29</td><td style="color:var(--good)">Likely main</td><td>Strong history and activity for a primary account.</td></tr>
+      </tbody>
+    </table>
+    <h3>What it looks at</h3>
+    <ul>
+      <li><strong>Account age.</strong> The strongest single signal. An account less than a week old gets 30 points
+        added; one that has been around for three years or more has points taken off.</li>
+      <li><strong>Friends, followers and groups.</strong> No friends, no followers and no groups all push toward “alt”.
+        A long friends list, a following, or owning a group pull the other way.</li>
+      <li><strong>Badges.</strong> Official Roblox badges, and badges earned inside games, show that an account has
+        actually been played.</li>
+      <li><strong>Favorites and created games.</strong> Favorited games and published places with real visits point to a
+        main. The “username's Place” that Roblox creates automatically doesn't count.</li>
+      <li><strong>Inventory.</strong> Limited items and their resale value, plus clothing and accessories that cost
+        Robux. Free items are ignored, because any new account can pick them up in seconds.</li>
+      <li><strong>Avatar.</strong> A default or barely customised avatar is typical of an account made in a hurry.</li>
+      <li><strong>Names and profile text.</strong> Usernames ending in a run of digits or containing words like “alt” or
+        “backup”, and descriptions that mention a main account. Past username changes count toward “main”.</li>
+      <li><strong>Verified badge.</strong> Roblox-verified accounts are never scored above 10.</li>
+    </ul>
+  </section>
+
+  <section class="card faq" aria-labelledby="faqTitle">
+    <h2 id="faqTitle">Questions about checking Roblox alts</h2>
+    <dl>
+      <dt>What is a Roblox alt account?</dt>
+      <dd>An alt, short for alternate account, is a second account someone makes alongside their main one. People use
+        alts for testing, trading, extra storage or a fresh start. Game and group owners mostly care about the ones made
+        to get around a ban or to hide who is behind an account.</dd>
+      <dt>How do I check if a Roblox account is an alt?</dt>
+      <dd>Type the username or user ID into the box at the top of this page and press Check. A few seconds later you get
+        a score from 0 to 100, a verdict, the account's public stats, and the list of signals behind the score.</dd>
+      <dt>How accurate is the alt score?</dt>
+      <dd>It's an estimate, not proof. The checker only sees what Roblox shows publicly, so it can't see IP addresses,
+        Robux, or who owns an account. A new, quiet main with a private inventory can score like an alt, and an alt that
+        someone has dressed up and played on can score like a main.</dd>
+      <dt>Can it tell me whose alt an account is?</dt>
+      <dd>No. It scores one account at a time. It never links accounts to each other or to a real person.</dd>
+      <dt>Will the person know I checked their account?</dt>
+      <dd>No. The checker reads the same public profile information anyone can open on Roblox. Nothing is sent to the
+        account and nobody is notified.</dd>
+      <dt>Do I need to log in with Roblox or give my password?</dt>
+      <dd>No. You only type the name of the account you want to check. This site never asks for your Roblox login,
+        password or cookie, and you should never give those to any website.</dd>
+      <dt data-hosted-only>Is it free?</dt>
+      <dd data-hosted-only>Yes. You can run a few lookups a day without signing up, and more with a free account. Pro raises the daily
+        limit, removes ads and adds bulk checks; the details are on the <a href="pricing.html">pricing page</a>.</dd>
+      <dt>Is this an official Roblox tool?</dt>
+      <dd>No. It's an independent website and isn't affiliated with, endorsed by, or sponsored by Roblox Corporation.</dd>
+    </dl>
   </section>
   <p class="about" id="badgeNote" style="margin-top:20px"></p>
 </main>

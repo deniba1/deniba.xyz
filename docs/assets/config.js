@@ -5,7 +5,7 @@ window.SITE = {
   // every feature is unlocked.
   supabaseUrl: "https://qytyagyhgvhlygmanqyo.supabase.co",
   supabaseAnonKey: "sb_publishable_zkNpkjvBKQeCQ7SI_Z1HLw_TIFvRNz9",   // the anon / publishable key, not the service-role key
-  googleLogin: false,    // show "Continue with Google" (enable the provider in Supabase first)
+  googleLogin: true,    // show "Continue with Google" (enable the provider in Supabase first)
 
   // Google AdSense, shown to guests and free accounts only. Empty = no ads.
   adsenseClient: "",     // "ca-pub-0000000000000000"

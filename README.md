@@ -34,6 +34,8 @@ docs/                               the website (GitHub Pages serves this folder
   terms.html, privacy.html, refunds.html
   assets/config.js                  ← the one file you edit: keys, ad IDs, legal details
   assets/app.js, assets/style.css   shared session/plan/ads code and styles
+  assets/theme.js                   light/dark switcher
+  robots.txt, sitemap.xml, 404.html, favicon.*, assets/og.png   for search and sharing
 supabase/migrations/*.sql           profiles + usage tables, quota functions
 supabase/functions/check/index.ts   lookups, accounts, daily quotas (Deno)
 supabase/functions/billing/index.ts Stripe checkout, portal, webhook, account deletion
@@ -173,6 +175,26 @@ the three `STRIPE_*` secrets with the live values.
 Ads only load for guests and free accounts, only on the checker page, and the
 ad script is never requested for Pro. On `localhost` a dashed placeholder marks
 where each ad will sit.
+
+### 10. Search engines
+
+The pages carry titles, descriptions, canonical links, social-preview tags and
+(on the checker) `WebApplication` structured data; `docs/robots.txt` and
+`docs/sitemap.xml` tell crawlers what exists. The account page is `noindex`.
+Lookup results live behind `#username` and are deliberately not indexable.
+
+1. **Google Search Console** (search.google.com/search-console): add the
+   domain, verify it with the DNS TXT record it gives you, then submit
+   `https://deniba.xyz/sitemap.xml` under *Sitemaps*. Bing Webmaster Tools can
+   import the site from Search Console.
+2. Make sure `http://` redirects to `https://`. If the domain goes through
+   Cloudflare, switch on **SSL/TLS → Edge Certificates → Always Use HTTPS**
+   there; otherwise tick *Enforce HTTPS* in the repo's Pages settings.
+
+The domain is written into the canonical/`og:` tags in each page's `<head>`,
+`robots.txt`, `sitemap.xml` and the JSON-LD in `index.html`. If the site ever
+moves, search the `docs/` folder for `deniba.xyz` and replace it. When a page's
+content changes, bump its `<lastmod>` in the sitemap.
 
 ## How the pieces fit
 

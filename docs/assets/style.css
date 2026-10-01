@@ -153,8 +153,19 @@ table.bulk td { padding: 8px 10px; border-top: 1px solid var(--border); vertical
 table.bulk img { width: 32px; height: 32px; border-radius: 8px; background: var(--panel2); display: block; }
 table.bulk .score { font-weight: 700; font-variant-numeric: tabular-nums; }
 .about { color: var(--muted); font-size: 14px; }
-.how { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 32px; }
+.how { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
 .how .card { margin: 0; }
+.info { margin-top: 40px; }
+.info > h2 { margin-bottom: 14px; }
+.info + .card { margin-top: 16px; }
+.explain ul { padding-left: 20px; margin: 0; }
+.explain li { margin: 8px 0; }
+.explain h3 { margin-top: 22px; }
+table.verdicts { width: 100%; border-collapse: collapse; margin-top: 14px; }
+table.verdicts th { text-align: left; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 500; padding: 0 10px 8px 0; }
+table.verdicts td { padding: 8px 10px 8px 0; border-top: 1px solid var(--border); vertical-align: top; }
+table.verdicts td:nth-child(1) { white-space: nowrap; font-variant-numeric: tabular-nums; }
+table.verdicts td:nth-child(2) { white-space: nowrap; font-weight: 700; }
 .how p { margin: 0; color: var(--muted); font-size: 14px; }
 
 /* ---- Ads (guests and free accounts) ---- */
@@ -199,4 +210,9 @@ table.bulk .score { font-weight: 700; font-variant-numeric: tabular-nums; }
   h1 { font-size: 25px; }
   .search { flex-direction: column; }
   .site-header nav a { padding: 7px 8px; }
+  /* Verdict table: score and verdict on one line, the meaning underneath. */
+  table.verdicts thead { display: none; }
+  table.verdicts tr { display: grid; grid-template-columns: 70px 1fr; border-top: 1px solid var(--border); padding: 8px 0; }
+  table.verdicts td { border: 0; padding: 0; }
+  table.verdicts td:nth-child(3) { grid-column: 1 / -1; color: var(--muted); font-size: 14px; }
 }
