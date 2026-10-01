@@ -4,11 +4,17 @@
   --good: #2fbf71; --bad: #ff5c5c; --warn: #f5a623;
   color-scheme: dark;
 }
+/* theme.js sets data-theme on <html> (saved choice, else the system setting).
+   The media query only matters when scripts are off. */
 @media (prefers-color-scheme: light) {
-  :root {
+  :root:not([data-theme]) {
     --bg: #f4f5f8; --panel: #ffffff; --panel2: #f0f2f6; --border: #dde1e8;
     --text: #171a21; --muted: #5f6674; --accent: #2f6fe8; color-scheme: light;
   }
+}
+:root[data-theme=light] {
+  --bg: #f4f5f8; --panel: #ffffff; --panel2: #f0f2f6; --border: #dde1e8;
+  --text: #171a21; --muted: #5f6674; --accent: #2f6fe8; color-scheme: light;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -41,6 +47,13 @@ h3 { font-size: 16px; margin: 0 0 12px; }
 .site-header nav a[aria-current=page] { color: var(--text); }
 .site-header nav a.btn { color: var(--accent-text); margin-left: 6px; }
 .site-header nav a.btn:hover { background: var(--accent); filter: brightness(1.08); }
+.theme-toggle { display: inline-flex; padding: 7px 8px; border-radius: 8px; background: none; color: var(--muted); }
+.theme-toggle:hover { color: var(--text); background: var(--panel2); filter: none; }
+.theme-toggle svg { display: block; }
+/* The icon shows where a click takes you: moon while light, sun while dark. */
+.theme-toggle .sun, :root[data-theme=dark] .theme-toggle .moon { display: none; }
+:root[data-theme=dark] .theme-toggle .sun { display: block; }
+:root:not([data-theme]) .theme-toggle { display: none; }
 .badge {
   display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
   padding: 1px 7px; border-radius: 999px; background: var(--panel2); color: var(--muted); border: 1px solid var(--border);
