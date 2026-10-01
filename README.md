@@ -196,6 +196,14 @@ The domain is written into the canonical/`og:` tags in each page's `<head>`,
 moves, search the `docs/` folder for `deniba.xyz` and replace it. When a page's
 content changes, bump its `<lastmod>` in the sitemap.
 
+### Changing the shared files
+
+The pages load `style.css`, `theme.js`, `config.js` and `app.js` with a version
+on the end (`assets/style.css?v=5`). Browsers keep those files for hours, so
+whenever you change one of them, raise the number in every page in `docs/`
+(search for `?v=`). Otherwise visitors get the new page with the old styles or
+settings until their cache expires.
+
 ## How the pieces fit
 
 - **Who is calling.** The page sends the Supabase access token with each

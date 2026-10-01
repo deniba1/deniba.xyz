@@ -13,6 +13,7 @@ window.SITE = {
 
   // Printed in the Terms, Privacy Policy and Refund Policy.
   operator: "Ruslan Suvorov, doing business as DENIXYZ",   // your name or your company's legal name
+  tradeName: "DENIXYZ",   // short business name, used on the Privacy Policy's contact line
   contactEmail: "deniba1@proton.me",   // where support, privacy and refund requests go
   governingLaw: "the State of California, USA",
 };
