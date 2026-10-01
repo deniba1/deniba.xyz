@@ -8,7 +8,7 @@ window.SITE = {
   googleLogin: true,    // show "Continue with Google" (enable the provider in Supabase first)
 
   // Google AdSense, shown to guests and free accounts only. Empty = no ads.
-  adsenseClient: "",     // "ca-pub-0000000000000000"
+  adsenseClient: "ca-pub-1335354496523169",
   adSlots: { top: "", bottom: "" },   // ad unit IDs for the two placements on the checker page
 
   // Printed in the Terms, Privacy Policy and Refund Policy.

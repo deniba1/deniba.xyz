@@ -199,7 +199,7 @@ content changes, bump its `<lastmod>` in the sitemap.
 ### Changing the shared files
 
 The pages load `style.css`, `theme.js`, `config.js` and `app.js` with a version
-on the end (`assets/style.css?v=5`). Browsers keep those files for hours, so
+on the end (`assets/style.css?v=6`). Browsers keep those files for hours, so
 whenever you change one of them, raise the number in every page in `docs/`
 (search for `?v=`). Otherwise visitors get the new page with the old styles or
 settings until their cache expires.
