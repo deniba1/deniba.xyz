@@ -20,8 +20,8 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon.png" type="image/png" sizes="96x96">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="assets/style.css?v=6">
-<script src="assets/theme.js?v=6"></script>
+<link rel="stylesheet" href="assets/style.css?v=7">
+<script src="assets/theme.js?v=7"></script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -192,8 +192,8 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<script src="assets/config.js?v=6"></script>
-<script src="assets/app.js?v=6"></script>
+<script src="assets/config.js?v=7"></script>
+<script src="assets/app.js?v=7"></script>
 <script>
 (() => {
   const { esc, hosted } = App;
@@ -203,6 +203,9 @@
   const plus = (o) => o ? n(o.count) + (o.truncated ? '+' : '') : '—';
   const sleep = (ms) => new Promise(r => setTimeout(r, ms));
   const BULK_MAX = 20;
+  // Refusals that last until tomorrow: the caller's own allowance, their
+  // network's, or the whole site's. Waiting a minute won't help.
+  const isDailyLimit = (e) => ['quota', 'network', 'global'].includes(e.code);
 
   // Pro features are open to Pro accounts and to self-hosted installs.
   let unlocked = !hosted;
@@ -332,14 +335,15 @@
   // Shown instead of a result when today's allowance is used up.
   function renderLimit(e) {
     const plan = e.data?.quota?.plan;
+    // The network and site-wide limits don't apply to Pro, so that's the way past them.
+    const buttons = e.code !== 'quota' ? '<a class="btn" href="pricing.html">See Pro</a>'
+      : plan === 'guest' ? '<a class="btn" href="account.html#signup">Create a free account</a><a class="btn secondary" href="pricing.html">See plans</a>'
+      : plan === 'free' ? '<a class="btn" href="pricing.html">Upgrade to Pro</a>' : '';
     out.innerHTML = `
       <div class="card upsell">
         <h3>Daily limit reached</h3>
         <p>${esc(e.message)}</p>
-        <div class="row">
-          ${plan === 'guest' ? '<a class="btn" href="account.html#signup">Create a free account</a><a class="btn secondary" href="pricing.html">See plans</a>'
-            : plan === 'free' ? '<a class="btn" href="pricing.html">Upgrade to Pro</a>' : ''}
-        </div>
+        <div class="row">${buttons}</div>
       </div>`;
   }
 
@@ -361,7 +365,7 @@
       }
       document.title = `${data.user.name} · ${data.verdict} · Roblox Alt Checker`;
     } catch (e) {
-      if (e.code === 'quota') {
+      if (isDailyLimit(e)) {
         renderLimit(e);
         paintQuota(e.data.quota);
       } else {
@@ -401,14 +405,14 @@
           paintQuota(r.quota);
           break;
         } catch (e) {
-          // The per-minute burst limit clears on its own; the daily one doesn't.
-          if (e.status === 429 && e.code !== 'quota' && attempt < 3) {
+          // The per-minute limits clear on their own; the daily ones don't.
+          if (e.status === 429 && !isDailyLimit(e) && attempt < 3) {
             status.textContent = 'rate limited, retrying…';
             await sleep(15000);
             continue;
           }
           status.textContent = e.message;
-          if (e.code === 'quota') { paintQuota(e.data.quota); stopped = true; }
+          if (isDailyLimit(e)) { paintQuota(e.data.quota); stopped = true; }
           if (e.code === 'auth') stopped = true;
           break;
         }

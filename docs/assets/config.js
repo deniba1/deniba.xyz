@@ -7,6 +7,12 @@ window.SITE = {
   supabaseAnonKey: "sb_publishable_zkNpkjvBKQeCQ7SI_Z1HLw_TIFvRNz9",   // the anon / publishable key, not the service-role key
   googleLogin: true,    // show "Continue with Google" (enable the provider in Supabase first)
 
+  // Cloudflare Turnstile site key: adds a "verify you are human" check to sign-up,
+  // sign-in and password reset. Set it here AND switch on CAPTCHA protection in
+  // Supabase (Authentication -> Attack Protection) with the matching secret key.
+  // Do both or neither: Supabase rejects sign-ins when only its side is on.
+  turnstileSiteKey: "",
+
   // Google AdSense, shown to guests and free accounts only. Empty = no ads.
   adsenseClient: "ca-pub-1335354496523169",
   adSlots: { top: "", bottom: "" },   // ad unit IDs for the two placements on the checker page

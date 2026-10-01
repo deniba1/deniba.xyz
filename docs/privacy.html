@@ -20,8 +20,8 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon.png" type="image/png" sizes="96x96">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="assets/style.css?v=6">
-<script src="assets/theme.js?v=6"></script>
+<link rel="stylesheet" href="assets/style.css?v=7">
+<script src="assets/theme.js?v=7"></script>
 </head>
 <body>
 <header class="site-header">
@@ -65,13 +65,11 @@
     <li>We keep the Stripe customer and subscription identifiers, the subscription's status and its renewal date, so we
       know whether your account is on Pro.</li>
   </ul>
-  <p><strong>If you use the service without an account</strong></p>
-  <ul>
-    <li>To apply the daily guest limit we store a salted, one-way hash of your IP address next to a lookup count. We
-      don't store the IP address itself in our database.</li>
-  </ul>
   <p><strong>For everyone</strong></p>
   <ul>
+    <li><strong>Usage limits.</strong> To apply the daily and per-minute limits, with or without an account, we keep
+      counters next to a salted, one-way hash of your network address. We don't store the address itself in our
+      database, and the counters hold numbers only.</li>
     <li><strong>Lookups.</strong> The Roblox username or ID you enter is sent to our server, which asks Roblox for that
       account's public profile. We don't keep a history of what you look up, and lookups aren't linked to your account in
       our database. Results are held in server memory for about ten minutes so repeat lookups are fast, then discarded.</li>
@@ -124,8 +122,9 @@
     <li><strong>Supabase</strong> — sign-in, database and server functions.</li>
     <li><strong>Stripe</strong> — payments, invoices and the billing portal.</li>
     <li><strong>Google</strong> — advertising on the free tiers, and sign-in if you choose “Continue with Google”.</li>
-    <li><strong>GitHub Pages</strong> and <strong>jsDelivr</strong> — deliver the website's files; like any web host, they
-      see your IP address when your browser loads them.</li>
+    <li><strong>Cloudflare</strong>, <strong>GitHub Pages</strong> and <strong>jsDelivr</strong> — deliver the website's
+      files; like any web host, they see your IP address when your browser loads them. If a “verify you are human” check
+      appears when you sign in, it is run by Cloudflare.</li>
     <li><strong>Roblox</strong> — our server sends the username you look up to Roblox. Roblox doesn't receive your IP
       address or identity from us.</li>
   </ul>
@@ -138,7 +137,7 @@
   <h2>7. How long we keep it</h2>
   <ul>
     <li><strong>Account data</strong> — until you delete your account.</li>
-    <li><strong>Daily lookup counts</strong>, including the hashed-IP counters for guests — deleted within a few days.</li>
+    <li><strong>Usage counters</strong>, including the ones kept against a hashed network address — deleted within a few days.</li>
     <li><strong>Billing records</strong> — Stripe and we keep records of payments for as long as tax and accounting law
       requires, even after an account is deleted.</li>
     <li><strong>Server logs and backups</strong> — removed automatically on our providers' schedules, typically within
@@ -189,7 +188,7 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<script src="assets/config.js?v=6"></script>
-<script src="assets/app.js?v=6"></script>
+<script src="assets/config.js?v=7"></script>
+<script src="assets/app.js?v=7"></script>
 </body>
 </html>

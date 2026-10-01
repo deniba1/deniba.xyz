@@ -347,6 +347,46 @@ async function webhook(req: Request): Promise<Response> {
 }
 
 // ---------------------------------------------------------------------------
+// Rate limits
+// ---------------------------------------------------------------------------
+const REQUESTS_PER_MIN = 60; // per address, any route but the webhook
+const ACTIONS_PER_10_MIN = 10; // checkout / portal / delete, per account
+const hits = new Map<string, number[]>();
+
+/** First line: counted in this copy's memory, before anything that costs a call elsewhere. */
+function rateLimited(key: string, perMinute: number): boolean {
+  const now = Date.now();
+  if (hits.size > 5000) {
+    for (const [k, times] of hits) if (now - times[times.length - 1] >= 60_000) hits.delete(k);
+  }
+  const q = (hits.get(key) ?? []).filter((t) => now - t < 60_000);
+  if (q.length >= perMinute) {
+    hits.set(key, q);
+    return true;
+  }
+  q.push(now);
+  hits.set(key, q);
+  return false;
+}
+
+/** Billing actions reach Stripe, so they're counted per account in Postgres, where the limit holds everywhere. */
+async function throttle(user: User): Promise<User> {
+  let allowed = true;
+  try {
+    allowed = await db("rpc/take_token", {
+      method: "POST",
+      body: { p_key: `bill:${user.id}`, p_limit: ACTIONS_PER_10_MIN, p_window_seconds: 600 },
+    });
+  } catch (e) {
+    // take_token comes from the rate-limit migration; without it, carry on unthrottled.
+    if (!(e instanceof Error && e.message.startsWith("database 404"))) throw e;
+    console.error("take_token is missing: run supabase/migrations/20261001000000_rate_limits.sql");
+  }
+  if (!allowed) throw new HttpError(429, "Too many billing requests. Try again in a few minutes.", "rate");
+  return user;
+}
+
+// ---------------------------------------------------------------------------
 // HTTP entry point
 // ---------------------------------------------------------------------------
 const CORS = {
@@ -366,12 +406,18 @@ Deno.serve(async (req) => {
   const route = new URL(req.url).pathname.replace(/\/+$/, "").split("/").pop() ?? "";
 
   try {
+    // Stripe signs its webhooks, and its retries must never be turned away.
+    if (route === "webhook" && req.method === "POST") return await webhook(req);
+    const ip = (req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for") ?? "unknown")
+      .split(",")[0].trim();
+    if (rateLimited(ip, REQUESTS_PER_MIN)) {
+      return json(429, { error: "Slow down: too many requests this minute.", code: "rate" });
+    }
     if (route === "price" && req.method === "GET") return json(200, await getPrice());
     if (req.method !== "POST") return json(404, { error: "not found" });
-    if (route === "webhook") return await webhook(req);
-    if (route === "checkout") return json(200, await checkout(await requireUser(req)));
-    if (route === "portal") return json(200, await portal(await requireUser(req)));
-    if (route === "delete-account") return json(200, await deleteAccount(await requireUser(req)));
+    if (route === "checkout") return json(200, await checkout(await throttle(await requireUser(req))));
+    if (route === "portal") return json(200, await portal(await throttle(await requireUser(req))));
+    if (route === "delete-account") return json(200, await deleteAccount(await throttle(await requireUser(req))));
     return json(404, { error: "not found" });
   } catch (e) {
     if (e instanceof HttpError) return json(e.status, { error: e.message, code: e.code });

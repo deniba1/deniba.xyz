@@ -9,8 +9,8 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon.png" type="image/png" sizes="96x96">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="assets/style.css?v=6">
-<script src="assets/theme.js?v=6"></script>
+<link rel="stylesheet" href="assets/style.css?v=7">
+<script src="assets/theme.js?v=7"></script>
 </head>
 <body>
 <header class="site-header">
@@ -67,6 +67,7 @@
         <span>I'm 13 or older and I agree to the <a href="terms.html" target="_blank">Terms of Service</a> and
           <a href="privacy.html" target="_blank">Privacy Policy</a>.</span>
       </label>
+      <div id="captcha" style="margin-top:16px" hidden></div>
       <button class="block" id="authGo" type="submit" style="margin-top:18px">Sign in</button>
       <p class="center small" id="forgotRow" style="margin:14px 0 0"><button type="button" class="link" id="forgot">Forgot your password?</button></p>
     </form>
@@ -134,8 +135,8 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<script src="assets/config.js?v=6"></script>
-<script src="assets/app.js?v=6"></script>
+<script src="assets/config.js?v=7"></script>
+<script src="assets/app.js?v=7"></script>
 <script>
 (async () => {
   const { esc, sb, cfg } = App;
@@ -156,6 +157,29 @@
     try { await fn(); } catch (e) { notice(esc(e.message), 'err'); } finally { button.disabled = false; }
   }
   const must = ({ data, error }) => { if (error) throw error; return data; };
+
+  // ---- "Are you human" check (optional) ----------------------------------
+  // With turnstileSiteKey set in config.js, the sign-in form shows a Cloudflare
+  // Turnstile check and passes its answer to Supabase, which verifies it when
+  // CAPTCHA protection is switched on there. Each answer works once.
+  let captchaWidget = null;
+  if (App.hosted && cfg.turnstileSiteKey) {
+    window.onTurnstileReady = () => {
+      $('#captcha').hidden = false;
+      captchaWidget = turnstile.render('#captcha', { sitekey: cfg.turnstileSiteKey, theme: document.documentElement.dataset.theme || 'auto' });
+    };
+    const script = document.createElement('script');
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileReady';
+    script.async = true;
+    document.head.append(script);
+  }
+  function captchaToken() {
+    if (!cfg.turnstileSiteKey) return undefined;
+    const token = captchaWidget === null ? '' : turnstile.getResponse(captchaWidget);
+    if (!token) throw new Error('Complete the “verify you are human” check first. If it isn\'t showing, wait a moment and try again.');
+    return token;
+  }
+  const captchaReset = () => { if (captchaWidget !== null) turnstile.reset(captchaWidget); };
 
   // ---- Sign in / sign up -------------------------------------------------
   let mode = 'in';
@@ -180,12 +204,18 @@
     notice('');
     const email = $('#email').value.trim(), password = $('#password').value;
     busy($('#authGo'), async () => {
-      if (mode === 'in') {
-        must(await sb.auth.signInWithPassword({ email, password }));
-        location.replace(next || 'account.html');
-        return;
+      const captcha = captchaToken();
+      let data;
+      try {
+        if (mode === 'in') {
+          must(await sb.auth.signInWithPassword({ email, password, options: { captchaToken: captcha } }));
+          location.replace(next || 'account.html');
+          return;
+        }
+        data = must(await sb.auth.signUp({ email, password, options: { emailRedirectTo: returnUrl, captchaToken: captcha } }));
+      } finally {
+        captchaReset();
       }
-      const data = must(await sb.auth.signUp({ email, password, options: { emailRedirectTo: returnUrl } }));
       if (data.session) location.replace(next || 'account.html');
       else notice(`Almost there: we've sent a confirmation link to <b>${esc(email)}</b>. Open it to finish signing up. Already have an account? Sign in instead.`, 'ok');
     });
@@ -195,7 +225,12 @@
     const email = $('#email').value.trim();
     if (!email) { notice('Type your email above first, then press “Forgot your password?” again.', 'warn'); $('#email').focus(); return; }
     busy($('#forgot'), async () => {
-      must(await sb.auth.resetPasswordForEmail(email, { redirectTo: `${location.origin}${location.pathname}` }));
+      const captcha = captchaToken();
+      try {
+        must(await sb.auth.resetPasswordForEmail(email, { redirectTo: `${location.origin}${location.pathname}`, captchaToken: captcha }));
+      } finally {
+        captchaReset();
+      }
       notice(`If there's an account for <b>${esc(email)}</b>, a password reset link is on its way.`, 'ok');
     });
   });

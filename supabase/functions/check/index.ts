@@ -5,17 +5,22 @@
 // GET  ?health=1                       -> {ok, badgeCheck, accounts}
 //
 // Send `Authorization: Bearer <Supabase access token>` to be counted as that
-// account; without it the caller is a guest, counted by IP.
+// account; without it the caller is a guest, counted by network address.
 //
 // Secrets (set with `supabase secrets set` or in the dashboard):
 //   ROBLOX_COOKIE       optional .ROBLOSECURITY; enables the player-badge check
 //   CACHE_TTL           seconds to cache a lookup (default 600)
-//   RATE_LIMIT_PER_MIN  lookups per client IP per minute (default 20)
 //   ALLOWED_ORIGIN      CORS origin (default "*")
 //   GUEST_DAILY_LIMIT   lookups per day without an account (default 3)
 //   FREE_DAILY_LIMIT    lookups per day on a free account (default 10)
 //   PRO_DAILY_LIMIT     lookups per day on Pro (default 500)
-//   IP_HASH_SALT        optional salt for the guest IP hash
+//   IP_DAILY_LIMIT      non-Pro lookups per day from one network, across all
+//                       its guests and free accounts (default 40)
+//   GLOBAL_DAILY_LIMIT  non-Pro lookups per day across the whole site (default 5000)
+//   RATE_LIMIT_PER_MIN  new lookups per minute per network and per account (default 20)
+//   GLOBAL_PER_MIN      non-Pro new lookups per minute across the whole site (default 60)
+//   REQUESTS_PER_MIN    requests of any kind per minute per network (default 120)
+//   IP_HASH_SALT        optional salt for the network-address hash
 //
 // The Roblox and scoring sections are a line-for-line port of checker.py; keep
 // the two in sync. Accounts and quotas exist only here.
@@ -23,6 +28,8 @@
 const ROBLOX_COOKIE = (Deno.env.get("ROBLOX_COOKIE") ?? "").trim();
 const CACHE_TTL = Number(Deno.env.get("CACHE_TTL") ?? "600");
 const RATE_LIMIT_PER_MIN = Number(Deno.env.get("RATE_LIMIT_PER_MIN") ?? "20");
+const GLOBAL_PER_MIN = Number(Deno.env.get("GLOBAL_PER_MIN") ?? "60");
+const REQUESTS_PER_MIN = Number(Deno.env.get("REQUESTS_PER_MIN") ?? "120");
 const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "*";
 
 // Supabase injects these into every Edge Function. Without them (a bare
@@ -36,6 +43,11 @@ const LIMITS = {
   free: Number(Deno.env.get("FREE_DAILY_LIMIT") ?? "10"),
   pro: Number(Deno.env.get("PRO_DAILY_LIMIT") ?? "500"),
 };
+const IP_DAILY_LIMIT = Number(Deno.env.get("IP_DAILY_LIMIT") ?? "40");
+const GLOBAL_DAILY_LIMIT = Number(Deno.env.get("GLOBAL_DAILY_LIMIT") ?? "5000");
+// Failed lookups are given back, but only this many times a day per caller, so
+// misses can't be used to reach Roblox for free.
+const REFUNDS_PER_DAY = 10;
 const IP_HASH_SALT = Deno.env.get("IP_HASH_SALT") ?? SERVICE_KEY;
 
 const WEARABLE_TYPES =
@@ -525,7 +537,8 @@ async function lookup(query: string) {
 }
 
 // ---------------------------------------------------------------------------
-// Cache + rate limit (per warm isolate; best-effort, resets on cold start)
+// Cache + first-line rate limit (per warm isolate; best-effort, resets on cold
+// start). The limits that must hold live in Postgres: see admit() below.
 // ---------------------------------------------------------------------------
 const cache = new Map<string, [number, Json]>();
 const hits = new Map<string, number[]>();
@@ -557,15 +570,18 @@ async function cachedLookup(query: string, fresh: boolean) {
   return { ...result, cached: false };
 }
 
-function rateLimited(ip: string): boolean {
+function rateLimited(key: string, perMinute: number): boolean {
   const now = Date.now();
-  const q = (hits.get(ip) ?? []).filter((t) => now - t < 60_000);
-  if (q.length >= RATE_LIMIT_PER_MIN) {
-    hits.set(ip, q);
+  if (hits.size > 5000) {
+    for (const [k, times] of hits) if (now - times[times.length - 1] >= 60_000) hits.delete(k);
+  }
+  const q = (hits.get(key) ?? []).filter((t) => now - t < 60_000);
+  if (q.length >= perMinute) {
+    hits.set(key, q);
     return true;
   }
   q.push(now);
-  hits.set(ip, q);
+  hits.set(key, q);
   return false;
 }
 
@@ -575,7 +591,8 @@ function rateLimited(ip: string): boolean {
 type Plan = "guest" | "free" | "pro";
 interface Caller {
   plan: Plan;
-  subject: string; // usage key: "u:<user id>" or "ip:<hash>"
+  subject: string; // usage key: "u:<user id>" or "ip:<network hash>"
+  network: string; // salted hash of the caller's network address
 }
 
 class AuthError extends Error {}
@@ -597,17 +614,34 @@ async function db(path: string, init: { method?: string; body?: Json } = {}): Pr
   return text ? JSON.parse(text) : null;
 }
 
-async function hashIp(ip: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${IP_HASH_SALT}:${ip}`));
+/**
+ * The unit a visitor is counted by. An IPv6 customer controls a whole /64 and
+ * can hop between its addresses at will, so those count as one; IPv4 is used
+ * as is.
+ */
+function networkOf(ip: string): string {
+  const addr = ip.trim().toLowerCase().replace(/^\[|\]$/g, "").split("%")[0];
+  const mapped = addr.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+  if (mapped) return mapped[1];
+  if (!addr.includes(":")) return addr;
+  const [head, tail] = addr.split("::");
+  const front = head ? head.split(":") : [];
+  const back = tail ? tail.split(":") : [];
+  const groups = tail === undefined ? front : [...front, ...Array(Math.max(0, 8 - front.length - back.length)).fill("0"), ...back];
+  return groups.slice(0, 4).map((g) => g.replace(/^0+(?=.)/, "")).join(":") + "::/64";
+}
+
+async function hashNetwork(ip: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${IP_HASH_SALT}:${networkOf(ip)}`));
   return [...new Uint8Array(digest)].slice(0, 16).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 /** Work out who is calling: a signed-in account (free or pro) or a guest. */
-async function identify(req: Request, ip: string): Promise<Caller> {
+async function identify(req: Request, network: string): Promise<Caller> {
   const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
   // supabase-js sends the project's public key as the bearer when nobody is signed in.
   if (!token || token === ANON_KEY || token.startsWith("sb_publishable_")) {
-    return { plan: "guest", subject: `ip:${await hashIp(ip)}` };
+    return { plan: "guest", subject: `ip:${network}`, network };
   }
   const resp = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
     headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${token}` },
@@ -622,14 +656,79 @@ async function identify(req: Request, ip: string): Promise<Caller> {
   const rows = await db(`profiles?id=eq.${encodeURIComponent(user.id)}&select=plan,current_period_end`);
   const p = rows?.[0];
   const lapsed = p?.current_period_end && Date.parse(p.current_period_end) + PERIOD_GRACE_MS < Date.now();
-  return { plan: p?.plan === "pro" && !lapsed ? "pro" : "free", subject: `u:${user.id}` };
+  return { plan: p?.plan === "pro" && !lapsed ? "pro" : "free", subject: `u:${user.id}`, network };
 }
 
-/** Take one lookup from today's allowance. Returns the new count, or null when it's used up. */
-const consume = (c: Caller): Promise<number | null> =>
-  db("rpc/consume_lookup", { method: "POST", body: { p_subject: c.subject, p_limit: LIMITS[c.plan] } });
+type Admission = { ok: true; used: number; taken: string[] } | { ok: false; code: string; error: string };
 
-const refund = (c: Caller) => db("rpc/refund_lookup", { method: "POST", body: { p_subject: c.subject } });
+/** PostgREST's answer when a function from the rate-limit migration doesn't exist yet. */
+const migrationMissing = (e: unknown) => e instanceof Error && e.message.startsWith("database 404");
+
+/**
+ * Decide whether this caller may run one new lookup, and count it. Everything
+ * is checked and counted in one database call (admit_lookup), so the limits
+ * hold across parallel requests and across copies of this function:
+ *
+ *   per minute  the caller's network, the account, and (non-Pro) the whole site
+ *   per day     the caller's own allowance, then for non-Pro the network's
+ *               total across all its guests and accounts, and the site's total
+ *
+ * Pro is exempt from the shared limits: one abusive network or a busy day
+ * can't take a paying customer's lookups away.
+ */
+async function admit(c: Caller): Promise<Admission> {
+  const pro = c.plan === "pro";
+  const burst = [{ key: `ip:${c.network}`, limit: RATE_LIMIT_PER_MIN, window: 60 }];
+  if (c.plan !== "guest") burst.push({ key: c.subject, limit: RATE_LIMIT_PER_MIN, window: 60 });
+  if (!pro) burst.push({ key: "global", limit: GLOBAL_PER_MIN, window: 60 });
+  const daily = [{ key: c.subject, limit: LIMITS[c.plan] }];
+  if (!pro) {
+    daily.push({ key: `net:${c.network}`, limit: IP_DAILY_LIMIT });
+    daily.push({ key: "global", limit: GLOBAL_DAILY_LIMIT });
+  }
+
+  let res: Json;
+  try {
+    res = await db("rpc/admit_lookup", { method: "POST", body: { p_burst: burst, p_daily: daily } });
+  } catch (e) {
+    if (!migrationMissing(e)) throw e;
+    // Deployed ahead of the migration: keep working on the caller's own allowance.
+    console.error("admit_lookup is missing: run supabase/migrations/20261001000000_rate_limits.sql");
+    if (rateLimited(`lookup:${c.network}`, RATE_LIMIT_PER_MIN)) {
+      return { ok: false, code: "rate", error: "Slow down: too many lookups this minute." };
+    }
+    const used = await db("rpc/consume_lookup", { method: "POST", body: { p_subject: c.subject, p_limit: LIMITS[c.plan] } });
+    return used === null
+      ? { ok: false, code: "quota", error: quotaMessage(c.plan) }
+      : { ok: true, used, taken: [c.subject] };
+  }
+  if (res.ok) return { ok: true, used: res.used, taken: daily.map((d) => d.key) };
+  if (res.reason === "burst") {
+    return burst[res.index].key === "global"
+      ? { ok: false, code: "busy", error: "The checker is busy right now. Try again in a minute." }
+      : { ok: false, code: "rate", error: "Slow down: too many lookups this minute." };
+  }
+  const full = daily[res.index].key;
+  if (full === c.subject) return { ok: false, code: "quota", error: quotaMessage(c.plan) };
+  if (full === "global") {
+    return { ok: false, code: "global", error: "Today's free lookups are used up across the site. Pro accounts aren't affected, or come back tomorrow." };
+  }
+  return { ok: false, code: "network", error: `Your network has used today's ${IP_DAILY_LIMIT} free lookups. Pro accounts aren't affected, or come back tomorrow.` };
+}
+
+/** Give a failed lookup back, a limited number of times a day. */
+async function refund(c: Caller, taken: string[]): Promise<void> {
+  try {
+    const allowed = await db("rpc/take_token", {
+      method: "POST",
+      body: { p_key: `refund:${c.subject}`, p_limit: REFUNDS_PER_DAY, p_window_seconds: 86400 },
+    });
+    if (allowed) await db("rpc/refund_lookups", { method: "POST", body: { p_subjects: taken } });
+  } catch (e) {
+    if (!migrationMissing(e)) throw e;
+    await db("rpc/refund_lookup", { method: "POST", body: { p_subject: c.subject } });
+  }
+}
 
 async function usedToday(c: Caller): Promise<number> {
   const day = new Date().toISOString().slice(0, 10);
@@ -679,7 +778,12 @@ Deno.serve(async (req) => {
     .split(",")[0].trim();
 
   try {
-    const caller = ACCOUNTS ? await identify(req, ip) : null;
+    // First line, before anything that costs a call elsewhere.
+    const network = await hashNetwork(ip);
+    if (rateLimited(network, REQUESTS_PER_MIN)) {
+      return json(429, { error: "Slow down: too many requests this minute.", code: "rate" });
+    }
+    const caller = ACCOUNTS ? await identify(req, network) : null;
     if (url.searchParams.has("quota")) {
       if (!caller) return json(200, { accounts: false });
       return json(200, { accounts: true, ...quota(caller, await usedToday(caller)), limits: LIMITS });
@@ -689,8 +793,12 @@ Deno.serve(async (req) => {
     const fresh = url.searchParams.get("fresh") === "1";
     if (!q.trim()) return json(400, { error: "Missing ?q=username-or-id" });
     if (q.length > 40) return json(400, { error: "Query too long" });
-    if (rateLimited(ip)) return json(429, { error: "Slow down: too many lookups this minute." });
-    if (!caller) return json(200, await cachedLookup(q, fresh));
+    if (!caller) {
+      if (rateLimited(`lookup:${network}`, RATE_LIMIT_PER_MIN)) {
+        return json(429, { error: "Slow down: too many lookups this minute.", code: "rate" });
+      }
+      return json(200, await cachedLookup(q, fresh));
+    }
 
     // Cached results are free. Skipping the cache is a Pro feature, except that
     // anyone may re-run a result Roblox rate-limited part of.
@@ -698,15 +806,16 @@ Deno.serve(async (req) => {
     if (hit && !(fresh && (caller.plan === "pro" || isPartial(hit)))) {
       return json(200, { ...hit, cached: true, quota: quota(caller, await usedToday(caller)) });
     }
-    const used = await consume(caller);
-    if (used === null) {
-      return json(429, { error: quotaMessage(caller.plan), code: "quota", quota: quota(caller, LIMITS[caller.plan]) });
+    const pass = await admit(caller);
+    if (!pass.ok) {
+      const used = pass.code === "quota" ? LIMITS[caller.plan] : await usedToday(caller);
+      return json(429, { error: pass.error, code: pass.code, quota: quota(caller, used) });
     }
     try {
-      return json(200, { ...(await cachedLookup(q, true)), quota: quota(caller, used) });
+      return json(200, { ...(await cachedLookup(q, true)), quota: quota(caller, pass.used) });
     } catch (e) {
       // Nothing was delivered, so don't charge for it.
-      await refund(caller).catch((err) => console.error("refund failed", err));
+      await refund(caller, pass.taken).catch((err) => console.error("refund failed", err));
       throw e;
     }
   } catch (e) {

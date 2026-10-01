@@ -55,8 +55,11 @@ Do it in this order. Use Stripe **test mode** until the last step.
 
 ### 1. Supabase: database
 
-Dashboard → **SQL Editor** → paste `supabase/migrations/20260929000000_freemium.sql`
-→ Run. (Or `supabase db push`.) It is safe to run twice.
+Dashboard → **SQL Editor** → paste and run each file in `supabase/migrations/`,
+oldest first: `20260929000000_freemium.sql`, then
+`20261001000000_rate_limits.sql`. (Or `supabase db push`.) Each is safe to run
+twice. When a later change adds a migration, run it *before* redeploying the
+functions.
 
 ### 2. Supabase: sign-in settings
 
@@ -73,7 +76,14 @@ key, and a sender like `no-reply@yourdomain.com`. Afterwards raise the email
 limit under **Authentication → Rate Limits** (custom SMTP starts at 30 an hour).
 
 Optional: **Authentication → Providers → Google**, then set `googleLogin: true`
-in `config.js`. Optional but recommended: **Attack Protection → CAPTCHA**.
+in `config.js`.
+
+Optional, against throwaway sign-ups: a “verify you are human” check. Create a
+free **Turnstile** widget in Cloudflare (it gives a site key and a secret key),
+put the site key in `turnstileSiteKey` in `config.js` and push, and only then
+enable **Authentication → Attack Protection → CAPTCHA** in Supabase with
+provider Turnstile and the secret key. Order matters: once Supabase's side is
+on, sign-ins without the check are rejected.
 
 ### 3. Supabase: functions
 
@@ -126,8 +136,12 @@ Dashboard → **Edge Functions → Secrets**, or `supabase secrets set NAME=valu
 | `STRIPE_AUTOMATIC_TAX`  | no       | `1` to let Stripe Tax add tax at checkout (set Stripe Tax up first) |
 | `ROBLOX_COOKIE`         | no       | `.ROBLOSECURITY` of a spare account; enables the badge check  |
 | `CACHE_TTL`             | no (600) | Seconds a lookup is cached                                    |
-| `RATE_LIMIT_PER_MIN`    | no (20)  | Burst limit per IP per minute                                 |
-| `IP_HASH_SALT`          | no       | Salt for the guest IP hash (defaults to the service key)      |
+| `IP_DAILY_LIMIT`        | no (40)  | Non-Pro lookups a day from one network, across all its guests and free accounts |
+| `GLOBAL_DAILY_LIMIT`    | no (5000)| Non-Pro lookups a day across the whole site                   |
+| `RATE_LIMIT_PER_MIN`    | no (20)  | New lookups a minute per network, and per account             |
+| `GLOBAL_PER_MIN`        | no (60)  | Non-Pro new lookups a minute across the whole site            |
+| `REQUESTS_PER_MIN`      | no (120) | Requests of any kind a minute per network                     |
+| `IP_HASH_SALT`          | no       | Salt for the network-address hash (defaults to the service key) |
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are provided
 by Supabase automatically.
@@ -199,7 +213,7 @@ content changes, bump its `<lastmod>` in the sitemap.
 ### Changing the shared files
 
 The pages load `style.css`, `theme.js`, `config.js` and `app.js` with a version
-on the end (`assets/style.css?v=6`). Browsers keep those files for hours, so
+on the end (`assets/style.css?v=7`). Browsers keep those files for hours, so
 whenever you change one of them, raise the number in every page in `docs/`
 (search for `?v=`). Otherwise visitors get the new page with the old styles or
 settings until their cache expires.
@@ -209,9 +223,19 @@ settings until their cache expires.
 - **Who is calling.** The page sends the Supabase access token with each
   lookup. `check` asks Supabase Auth who it belongs to and reads `plan` from
   `profiles`. No token means a guest, counted by a salted hash of the IP.
-- **Quotas.** `consume_lookup()` in Postgres takes one lookup atomically, so
-  parallel requests can't overshoot. The `usage` table holds counts only, never
-  which usernames were looked up, and sweeps itself after two days.
+- **Limits.** Every new lookup goes through `admit_lookup()` in Postgres,
+  which checks and counts everything in one atomic step, so parallel requests
+  and multiple copies of the function can't overshoot:
+  - per minute: the caller's network, the account, and the whole site;
+  - per day: the caller's own allowance, the network's total across all its
+    guests and free accounts, and the site's total.
+
+  Pro is exempt from the network and site-wide limits, so abuse elsewhere never
+  costs a paying customer a lookup. A network is one IPv4 address or one IPv6
+  /64. Failed lookups are given back, at most ten a day per caller. Billing
+  actions are limited to ten per account per ten minutes. The tables hold
+  counts against salted hashes, never addresses or the usernames looked up,
+  and sweep themselves after a couple of days.
 - **Becoming Pro.** `billing/checkout` creates a Stripe Checkout session. Stripe
   calls `billing/webhook`, which verifies the signature, re-reads the
   subscription from Stripe and writes `plan` to `profiles`. Browsers can read

@@ -20,8 +20,8 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon.png" type="image/png" sizes="96x96">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="assets/style.css?v=6">
-<script src="assets/theme.js?v=6"></script>
+<link rel="stylesheet" href="assets/style.css?v=7">
+<script src="assets/theme.js?v=7"></script>
 </head>
 <body>
 <header class="site-header">
@@ -83,7 +83,9 @@
     <h2>Questions</h2>
     <dl>
       <dt>What counts as a lookup?</dt>
-      <dd>Each account you check that isn't already in the short-term cache. Opening the same result again within a few minutes is free, and a lookup that fails isn't counted. Allowances reset at 00:00 UTC.</dd>
+      <dd>Each account you check that isn't already in the short-term cache. Opening the same result again within a few minutes is free, and a lookup that fails isn't counted (up to ten a day). Allowances reset at 00:00 UTC.</dd>
+      <dt>Can a free allowance run out early?</dt>
+      <dd>Occasionally. To keep the service fair, free and guest lookups also share a daily cap per network (a household, school or mobile carrier) and across the whole site. If one of those is reached, free lookups pause until 00:00 UTC. Pro accounts aren't affected by the shared caps.</dd>
       <dt>How do I cancel?</dt>
       <dd>From your <a href="account.html">account page</a>, open “Manage billing” and cancel there. You keep Pro until the end of the period you've paid for, then drop back to Free.</dd>
       <dt>Can I get my money back?</dt>
@@ -111,8 +113,8 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<script src="assets/config.js?v=6"></script>
-<script src="assets/app.js?v=6"></script>
+<script src="assets/config.js?v=7"></script>
+<script src="assets/app.js?v=7"></script>
 <script>
 (async () => {
   const { esc } = App;
