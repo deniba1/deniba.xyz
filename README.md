@@ -62,9 +62,13 @@ Dashboard → **SQL Editor** → paste `supabase/migrations/20260929000000_freem
 (`https://checker.example.com`) and add `https://checker.example.com/**` to
 *Redirect URLs*.
 
-**Authentication → Emails → SMTP**: the built-in mailer only sends a couple of
-emails an hour. Before launch, plug in your own SMTP (Resend, Postmark, SES…)
-or sign-ups will stall waiting for confirmation emails.
+**Authentication → Emails → SMTP**: the built-in mailer only delivers to your
+own project team's addresses, at 2 emails an hour, so real visitors never get
+their confirmation email. Plug in your own SMTP before launch. Resend's free
+plan is enough to start: verify your domain there, create an API key, then
+enter host `smtp.resend.com`, port `465`, username `resend`, password = the API
+key, and a sender like `no-reply@yourdomain.com`. Afterwards raise the email
+limit under **Authentication → Rate Limits** (custom SMTP starts at 30 an hour).
 
 Optional: **Authentication → Providers → Google**, then set `googleLogin: true`
 in `config.js`. Optional but recommended: **Attack Protection → CAPTCHA**.
@@ -87,11 +91,14 @@ Editor**; create `check` and `billing`, paste each `index.ts`, and turn
 1. **Product catalog → Add product**: "Pro", recurring price (monthly or
    yearly). Copy the price ID (`price_…`).
 2. **Developers → API keys**: copy the secret key (`sk_test_…`).
-3. **Developers → Webhooks → Add endpoint**:
-   `https://<project-ref>.supabase.co/functions/v1/billing/webhook`, events
-   `checkout.session.completed`, `customer.subscription.created`,
-   `customer.subscription.updated`, `customer.subscription.deleted`.
-   Copy the signing secret (`whsec_…`).
+3. Open dashboard.stripe.com/webhooks (the **Webhooks** tab in Workbench) →
+   **Create an event destination** → *Your account* → keep the suggested API
+   version → tick the four events `checkout.session.completed`,
+   `customer.subscription.created`, `customer.subscription.updated`,
+   `customer.subscription.deleted` → **Continue** → *Webhook endpoint* →
+   Endpoint URL `https://<project-ref>.supabase.co/functions/v1/billing/webhook`.
+   `<project-ref>` is the first part of your Supabase project URL. On the
+   endpoint's page, **Reveal** the signing secret (`whsec_…`) and copy it.
 4. **Settings → Billing → Customer portal**: switch it on and allow customers
    to cancel subscriptions and update payment methods. "Manage billing" on the
    account page opens this.

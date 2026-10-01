@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pricing · Roblox Alt Checker</title>
+<meta name="description" content="Roblox Alt Checker is free to use. Pro adds more daily lookups, bulk checks, instant refreshes and removes ads.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f8cff'/%3E%3Cpath d='M9 16.5l4.5 4.5L23 11.5' fill='none' stroke='%23fff' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="bar">
+    <a class="brand" href="./">
+      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#4f8cff"/><path d="M9 16.5l4.5 4.5L23 11.5" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Roblox Alt Checker
+    </a>
+    <nav>
+      <a href="./">Checker</a>
+      <a href="pricing.html" aria-current="page" data-hosted-only>Pricing</a>
+      <a class="btn small" id="navAccount" href="account.html">Sign in</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="center">
+    <h1>Free to use. Pro when you need more.</h1>
+    <p class="sub">Every plan gets the full score breakdown. Pro lifts the daily limit and removes the ads.</p>
+  </div>
+  <div id="notice"></div>
+
+  <div class="plans">
+    <section class="card plan" aria-labelledby="planFree">
+      <h2 id="planFree">Free</h2>
+      <div class="price">$0</div>
+      <ul>
+        <li><b id="limFree">10</b> lookups a day with a free account</li>
+        <li><span id="limGuest">3</span> a day without signing up</li>
+        <li>Full score breakdown on every lookup</li>
+        <li class="no">Shows ads</li>
+        <li class="no">No bulk check or instant refresh</li>
+      </ul>
+      <a class="btn secondary block" id="freeBtn" href="account.html#signup">Create a free account</a>
+    </section>
+
+    <section class="card plan featured" aria-labelledby="planPro">
+      <h2 id="planPro">Pro</h2>
+      <div class="price" id="proPrice">&nbsp;</div>
+      <ul>
+        <li><b id="limPro">500</b> lookups a day</li>
+        <li>No ads</li>
+        <li>Bulk check: up to 20 accounts in one go</li>
+        <li>Refresh any result instantly, skipping the cache</li>
+        <li>Cancel any time, 14-day money-back guarantee</li>
+      </ul>
+      <button class="block" id="proBtn" type="button" disabled>Upgrade to Pro</button>
+      <p class="muted small" style="margin:12px 0 0">Paid securely through Stripe. Renews automatically until you cancel. By subscribing you agree to the
+        <a href="terms.html">Terms</a> and <a href="refunds.html">Refund Policy</a>.</p>
+    </section>
+  </div>
+
+  <section class="card faq">
+    <h2>Questions</h2>
+    <dl>
+      <dt>What counts as a lookup?</dt>
+      <dd>Each account you check that isn't already in the short-term cache. Opening the same result again within a few minutes is free, and a lookup that fails isn't counted. Allowances reset at 00:00 UTC.</dd>
+      <dt>How do I cancel?</dt>
+      <dd>From your <a href="account.html">account page</a>, open “Manage billing” and cancel there. You keep Pro until the end of the period you've paid for, then drop back to Free.</dd>
+      <dt>Can I get my money back?</dt>
+      <dd>Yes. Your first payment is refundable for 14 days, no questions asked. The details are in the <a href="refunds.html">Refund Policy</a>.</dd>
+      <dt>Does Pro make the score more accurate?</dt>
+      <dd>No. Every plan gets the same checks and the same score. It's an estimate from public data on any plan, never proof.</dd>
+      <dt>Which payment methods can I use?</dt>
+      <dd>Checkout is run by Stripe and offers the cards and wallets available in your country. We never see or store your card details.</dd>
+    </dl>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="bar">
+    <nav>
+      <a href="./">Checker</a>
+      <a href="pricing.html" data-hosted-only>Pricing</a>
+      <a href="account.html" data-hosted-only>Account</a>
+      <a href="terms.html">Terms of Service</a>
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="refunds.html">Refund Policy</a>
+    </nav>
+    <p>Not affiliated with, endorsed by, or sponsored by Roblox Corporation. Roblox is a trademark of Roblox Corporation.</p>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
+<script src="assets/config.js"></script>
+<script src="assets/app.js"></script>
+<script>
+(async () => {
+  const { esc } = App;
+  const $ = (s) => document.querySelector(s);
+  const notice = (text, kind = '') => { $('#notice').innerHTML = `<div class="msg ${kind}">${text}</div>`; };
+  const proBtn = $('#proBtn'), freeBtn = $('#freeBtn'), proPrice = $('#proPrice');
+
+  // Stripe amounts are in the smallest unit, except for these currencies.
+  const ZERO_DECIMAL = ['bif', 'clp', 'djf', 'gnf', 'jpy', 'kmf', 'krw', 'mga', 'pyg', 'rwf', 'ugx', 'vnd', 'vuv', 'xaf', 'xof', 'xpf'];
+  function priceHtml(p) {
+    const amount = ZERO_DECIMAL.includes(p.currency) ? p.amount : p.amount / 100;
+    const money = new Intl.NumberFormat(undefined, { style: 'currency', currency: p.currency.toUpperCase() }).format(amount);
+    const every = p.intervalCount > 1 ? `every ${p.intervalCount} ${p.interval}s` : `per ${p.interval}`;
+    return `${esc(money)} <small>${esc(every)}</small>`;
+  }
+
+  const state = await App.ready;
+  if (!App.hosted) {
+    notice('This copy of the site is self-hosted: there are no accounts or plans, and every feature is unlocked.');
+    proPrice.textContent = '—';
+    freeBtn.hidden = true;
+    return;
+  }
+  if (new URLSearchParams(location.search).get('checkout') === 'cancelled') {
+    notice('Checkout cancelled. You haven\'t been charged.');
+    history.replaceState(null, '', location.pathname);
+  }
+
+  // The real limits and price live on the server; show those rather than the defaults above.
+  App.call('check?quota=1').then((qt) => {
+    if (!qt.limits) return;
+    $('#limGuest').textContent = qt.limits.guest;
+    $('#limFree').textContent = qt.limits.free;
+    $('#limPro').textContent = qt.limits.pro;
+  }).catch(() => {});
+
+  if (state.user) {
+    freeBtn.removeAttribute('href');
+    freeBtn.textContent = state.plan === 'free' ? 'Your current plan' : 'Included in Pro';
+    freeBtn.style.pointerEvents = 'none';
+    freeBtn.style.opacity = '.6';
+  }
+
+  const price = await App.call('billing/price').catch(() => null);
+  if (!price?.configured) {
+    proPrice.innerHTML = '<small>Coming soon</small>';
+    proBtn.textContent = 'Not available yet';
+    return;
+  }
+  proPrice.innerHTML = priceHtml(price);
+  proBtn.disabled = false;
+
+  if (state.plan === 'pro') {
+    proBtn.textContent = 'Manage subscription';
+    proBtn.addEventListener('click', () => { location.href = 'account.html'; });
+  } else if (!state.user) {
+    proBtn.addEventListener('click', () => { location.href = 'account.html?next=pricing#signup'; });
+  } else {
+    proBtn.addEventListener('click', async () => {
+      proBtn.disabled = true;
+      proBtn.textContent = 'Opening checkout…';
+      try {
+        const { url } = await App.call('billing/checkout', { method: 'POST' });
+        location.href = url;
+      } catch (e) {
+        notice(esc(e.message) + (e.code === 'already_pro' || e.code === 'auth' ? ' <a href="account.html">Go to your account</a>' : ''), 'err');
+        proBtn.disabled = false;
+        proBtn.textContent = 'Upgrade to Pro';
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>

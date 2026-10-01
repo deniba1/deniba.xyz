@@ -4,123 +4,125 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Roblox Alt Checker</title>
-<style>
-  :root {
-    --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --border: #2a2f3a;
-    --text: #e8eaf0; --muted: #8b93a5; --accent: #4f8cff;
-    --good: #2fbf71; --bad: #ff5c5c; --warn: #f5a623;
-    color-scheme: dark;
-  }
-  @media (prefers-color-scheme: light) {
-    :root {
-      --bg: #f4f5f8; --panel: #ffffff; --panel2: #f0f2f6; --border: #dde1e8;
-      --text: #171a21; --muted: #5f6674; color-scheme: light;
-    }
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; background: var(--bg); color: var(--text);
-    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  }
-  main { max-width: 960px; margin: 0 auto; padding: 32px 16px 64px; }
-  h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.01em; }
-  .sub { color: var(--muted); margin: 0 0 24px; }
-  form { display: flex; gap: 8px; margin-bottom: 20px; }
-  input[type=text] {
-    flex: 1; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border);
-    background: var(--panel); color: var(--text); font-size: 16px; outline: none;
-  }
-  input[type=text]:focus { border-color: var(--accent); }
-  button {
-    padding: 12px 20px; border-radius: 10px; border: 0; background: var(--accent);
-    color: #fff; font-size: 15px; font-weight: 600; cursor: pointer;
-  }
-  button:disabled { opacity: .6; cursor: wait; }
-  .msg { padding: 14px 16px; border-radius: 10px; background: var(--panel); border: 1px solid var(--border); }
-  .msg.err { border-color: var(--bad); color: var(--bad); }
-  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
-  .profile { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
-  .profile img { width: 96px; height: 96px; border-radius: 14px; background: var(--panel2); flex: none; }
-  .profile .who { flex: 1; min-width: 200px; }
-  .profile .who h2 { margin: 0; font-size: 22px; }
-  .profile .who .handle { color: var(--muted); }
-  .profile .who .meta { margin-top: 6px; color: var(--muted); font-size: 14px; }
-  .tag { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); margin-left: 6px; vertical-align: middle; color: var(--muted); }
-  .tag.verified { border-color: var(--accent); color: var(--accent); }
-  .tag.banned { border-color: var(--bad); color: var(--bad); }
-  .verdict { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
-  .ring { position: relative; width: 120px; height: 120px; flex: none; }
-  .ring svg { transform: rotate(-90deg); }
-  .ring .num { position: absolute; inset: 0; display: grid; place-items: center; font-size: 30px; font-weight: 700; }
-  .ring .num small { display: block; font-size: 11px; color: var(--muted); font-weight: 500; text-align: center; }
-  .verdict .label { font-size: 24px; font-weight: 700; }
-  .verdict .summary { color: var(--muted); }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-  .stat { background: var(--panel2); border-radius: 10px; padding: 12px 14px; }
-  .stat .k { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
-  .stat .v { font-size: 20px; font-weight: 700; margin-top: 2px; }
-  .stat .d { font-size: 12px; color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  h3 { margin: 0 0 12px; font-size: 16px; }
-  .signals { display: flex; flex-direction: column; gap: 8px; }
-  .sig { display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; background: var(--panel2); border-radius: 10px; }
-  .pts { flex: none; min-width: 44px; text-align: center; font-weight: 700; padding: 2px 6px; border-radius: 6px; font-size: 13px; }
-  .pts.alt { background: color-mix(in srgb, var(--bad) 18%, transparent); color: var(--bad); }
-  .pts.main { background: color-mix(in srgb, var(--good) 18%, transparent); color: var(--good); }
-  .pts.zero { background: var(--border); color: var(--muted); }
-  .sig .t { font-weight: 600; }
-  .sig .dt { color: var(--muted); font-size: 14px; }
-  .notes { color: var(--muted); font-size: 13px; }
-  .notes li { margin: 2px 0; }
-  details summary { cursor: pointer; color: var(--muted); }
-  pre { background: var(--panel2); padding: 12px; border-radius: 10px; overflow-x: auto; font-size: 12px; }
-  .recent { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
-  .recent a { color: var(--muted); font-size: 13px; text-decoration: none; border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; }
-  .recent a:hover { color: var(--text); border-color: var(--accent); }
-  footer { color: var(--muted); font-size: 13px; margin-top: 32px; }
-  a { color: var(--accent); }
-  .about { color: var(--muted); font-size: 14px; }
-</style>
+<meta name="description" content="Look up any Roblox username and see how likely it is to be an alt account, scored from public profile data with every signal explained.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f8cff'/%3E%3Cpath d='M9 16.5l4.5 4.5L23 11.5' fill='none' stroke='%23fff' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
+<header class="site-header">
+  <div class="bar">
+    <a class="brand" href="./">
+      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#4f8cff"/><path d="M9 16.5l4.5 4.5L23 11.5" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Roblox Alt Checker
+    </a>
+    <nav>
+      <a href="./" aria-current="page">Checker</a>
+      <a href="pricing.html" data-hosted-only>Pricing</a>
+      <a class="btn small" id="navAccount" href="account.html">Sign in</a>
+    </nav>
+  </div>
+</header>
+
 <main>
-  <h1>Roblox Alt Checker</h1>
+  <h1>Is that Roblox account an alt?</h1>
   <p class="sub">Paste a username or user ID. Public profile data is scored to estimate whether it's an alt.</p>
 
-  <form id="form" autocomplete="off">
-    <input type="text" id="q" placeholder="Username or user ID (e.g. builderman or 156)" maxlength="40" required>
+  <form class="search" id="form" autocomplete="off">
+    <input type="text" id="q" placeholder="Username or user ID (e.g. builderman or 156)" maxlength="40" required aria-label="Username or user ID">
     <button id="go" type="submit">Check</button>
   </form>
-  <div class="recent" id="recent"></div>
+  <p class="quota" id="quota"></p>
+  <div class="tools">
+    <button type="button" class="chip" id="bulkToggle" aria-expanded="false" aria-controls="bulkPanel">Bulk check <span class="badge pro" id="bulkBadge" hidden>Pro</span></button>
+    <span id="recent" style="display:contents"></span>
+  </div>
+
+  <div class="card" id="bulkPanel" hidden>
+    <h3>Bulk check</h3>
+    <div id="bulkLocked" hidden>
+      <p class="muted" style="margin:0 0 12px">Checking a whole list in one go is part of Pro.</p>
+      <a class="btn small" href="pricing.html">See Pro</a>
+    </div>
+    <form id="bulkForm" hidden>
+      <textarea id="bulkNames" rows="5" placeholder="One username or user ID per line, up to 20" aria-label="Usernames, one per line"></textarea>
+      <div class="row" style="margin-top:10px">
+        <button type="submit" id="bulkGo">Check all</button>
+        <span class="muted small">Each new lookup counts toward today's allowance.</span>
+      </div>
+    </form>
+  </div>
+
+  <div class="ad" data-slot="top" hidden></div>
 
   <div id="out"></div>
 
-  <footer>
-    <p class="about">The score is a heuristic built from public signals only: account age, friends, followers, badges, favorites,
-    inventory, groups, avatar, and naming patterns. It can't see Robux, IPs, or private data, so treat it as a hint, not proof.</p>
-    <p class="about" id="badgeNote"></p>
-  </footer>
+  <div class="ad" data-slot="bottom" data-lazy hidden></div>
+
+  <section class="how" aria-label="How it works">
+    <div class="card">
+      <h3>Public data only</h3>
+      <p>Account age, friends, followers, badges, favorites, inventory, groups, avatar and naming patterns. Nothing private, no login to Roblox.</p>
+    </div>
+    <div class="card">
+      <h3>Every point explained</h3>
+      <p>Each signal shows how many points it added or removed, so you can see exactly why an account got its score.</p>
+    </div>
+    <div class="card">
+      <h3>A hint, not proof</h3>
+      <p>It can't see Robux, IP addresses or private data. A quiet new main can look like an alt, so don't accuse anyone on a score alone.</p>
+    </div>
+  </section>
+  <p class="about" id="badgeNote" style="margin-top:20px"></p>
 </main>
 
-<script>
-// ====================================================================
-// CONFIG: where the checker backend lives.
-//   GitHub Pages + Supabase: paste your Edge Function URL, e.g.
-//     "https://abcdefghijklmnop.supabase.co/functions/v1/check"
-//   Running server.py locally / on Render / Docker: leave it empty ("")
-//   and the page talks to /api on the same host.
-// ====================================================================
-const API_BASE = "https://qytyagyhgvhlygmanqyo.supabase.co/functions/v1/check";
+<footer class="site-footer">
+  <div class="bar">
+    <nav>
+      <a href="./">Checker</a>
+      <a href="pricing.html" data-hosted-only>Pricing</a>
+      <a href="account.html" data-hosted-only>Account</a>
+      <a href="terms.html">Terms of Service</a>
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="refunds.html">Refund Policy</a>
+    </nav>
+    <p>Not affiliated with, endorsed by, or sponsored by Roblox Corporation. Roblox is a trademark of Roblox Corporation.</p>
+  </div>
+</footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
+<script src="assets/config.js"></script>
+<script src="assets/app.js"></script>
+<script>
 (() => {
+  const { esc, hosted } = App;
   const $ = (s) => document.querySelector(s);
-  const apiUrl = (q, extra) => API_BASE
-    ? `${API_BASE}?q=${encodeURIComponent(q)}${extra}`
-    : `/api/lookup?q=${encodeURIComponent(q)}${extra}`;
-  const healthUrl = API_BASE ? `${API_BASE}?health=1` : '/api/health';
   const out = $('#out'), form = $('#form'), q = $('#q'), go = $('#go');
-  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const n = (v) => v == null ? '—' : Number(v).toLocaleString();
   const plus = (o) => o ? n(o.count) + (o.truncated ? '+' : '') : '—';
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+  const BULK_MAX = 20;
+
+  // Pro features are open to Pro accounts and to self-hosted installs.
+  let unlocked = !hosted;
+
+  // One lookup against the backend: the Edge Function when hosted, server.py otherwise.
+  async function lookup(name, fresh) {
+    const params = `q=${encodeURIComponent(name)}${fresh ? '&fresh=1' : ''}`;
+    if (hosted) return App.call(`check?${params}`);
+    const res = await fetch(`/api/lookup?${params}`);
+    const data = await res.json();
+    if (!res.ok) throw Object.assign(new Error(data.error || `HTTP ${res.status}`), { status: res.status });
+    return data;
+  }
+
+  function paintQuota(qt) {
+    if (!qt) return;
+    const left = `${n(qt.remaining)} of ${n(qt.limit)}`;
+    $('#quota').innerHTML =
+      qt.plan === 'guest' ? `${left} guest lookups left today. <a href="account.html#signup">Create a free account</a> for more.` :
+      qt.plan === 'free' ? `${left} free lookups left today. <a href="pricing.html">Go Pro</a> for more and no ads.` :
+      `${left} lookups left today.`;
+  }
 
   // Recent lookups (per browser)
   function recent() { try { return JSON.parse(localStorage.getItem('recent') || '[]'); } catch { return []; } }
@@ -166,6 +168,9 @@ const API_BASE = "https://qytyagyhgvhlygmanqyo.supabase.co/functions/v1/check";
       ['Past names', s.previousNames ? s.previousNames.length : '—', s.previousNames?.join(', ')],
       ['Status', s.presence ? s.presence.status : '—', s.presence?.lastLocation || ''],
     ];
+    const cachedNote = !r.cached ? '' : unlocked
+      ? ' · cached result · <button type="button" class="link" id="refresh">refresh</button>'
+      : ' · cached result';
 
     out.innerHTML = `
       <div class="card profile">
@@ -176,7 +181,7 @@ const API_BASE = "https://qytyagyhgvhlygmanqyo.supabase.co/functions/v1/check";
             ${u.isBanned ? '<span class="tag banned">banned</span>' : ''}
           </h2>
           <div class="handle">@${esc(u.name)} · ID ${u.id} · <a href="${esc(u.profileUrl)}" target="_blank" rel="noopener">profile ↗</a></div>
-          <div class="meta">Created ${esc((u.created || '').slice(0, 10))} · ${ageText(u.accountAgeDays)}${r.cached ? ' · cached result' : ''}</div>
+          <div class="meta">Created ${esc((u.created || '').slice(0, 10))} · ${ageText(u.accountAgeDays)}${cachedNote}</div>
           ${u.description ? `<div class="meta">“${esc(u.description.slice(0, 220))}${u.description.length > 220 ? '…' : ''}”</div>` : ''}
         </div>
       </div>
@@ -222,6 +227,20 @@ const API_BASE = "https://qytyagyhgvhlygmanqyo.supabase.co/functions/v1/check";
     `;
   }
 
+  // Shown instead of a result when today's allowance is used up.
+  function renderLimit(e) {
+    const plan = e.data?.quota?.plan;
+    out.innerHTML = `
+      <div class="card upsell">
+        <h3>Daily limit reached</h3>
+        <p>${esc(e.message)}</p>
+        <div class="row">
+          ${plan === 'guest' ? '<a class="btn" href="account.html#signup">Create a free account</a><a class="btn secondary" href="pricing.html">See plans</a>'
+            : plan === 'free' ? '<a class="btn" href="pricing.html">Upgrade to Pro</a>' : ''}
+        </div>
+      </div>`;
+  }
+
   async function check(name, fresh) {
     name = name.trim();
     if (!name) return;
@@ -229,18 +248,71 @@ const API_BASE = "https://qytyagyhgvhlygmanqyo.supabase.co/functions/v1/check";
     go.disabled = true;
     out.innerHTML = `<div class="msg">Checking <b>${esc(name)}</b>… this hits a dozen Roblox endpoints, give it a few seconds.</div>`;
     try {
-      const res = await fetch(apiUrl(name, fresh ? '&fresh=1' : ''));
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      await App.ready;
+      const data = await lookup(name, fresh);
       render(data);
+      App.showAd('bottom');
+      paintQuota(data.quota);
       remember(data.user.name);
-      document.getElementById('recheck')?.addEventListener('click', () => check(data.user.name, true));
+      for (const id of ['recheck', 'refresh']) {
+        document.getElementById(id)?.addEventListener('click', () => check(data.user.name, true));
+      }
       document.title = `${data.user.name} · ${data.verdict} · Roblox Alt Checker`;
     } catch (e) {
-      out.innerHTML = `<div class="msg err">${esc(e.message)}</div>`;
+      if (e.code === 'quota') {
+        renderLimit(e);
+        paintQuota(e.data.quota);
+      } else {
+        out.innerHTML = `<div class="msg err">${esc(e.message)}${e.code === 'auth' ? ' <a href="account.html">Sign in</a>' : ''}</div>`;
+      }
     } finally {
       go.disabled = false;
     }
+  }
+
+  // Bulk: run a list one at a time (Roblox rate-limits bursts) into a summary table.
+  async function bulk(names) {
+    const bulkGo = $('#bulkGo');
+    bulkGo.disabled = go.disabled = true;
+    out.innerHTML = `
+      <div class="card">
+        <h3>Bulk results</h3>
+        <table class="bulk">
+          <thead><tr><th></th><th>Account</th><th>Score</th><th>Verdict</th></tr></thead>
+          <tbody>${names.map((nm, i) => `<tr id="bulk${i}"><td></td><td>${esc(nm)}</td><td colspan="2" class="muted">waiting…</td></tr>`).join('')}</tbody>
+        </table>
+      </div>`;
+    let stopped = false;
+    for (const [i, nm] of names.entries()) {
+      const row = document.getElementById(`bulk${i}`);
+      const status = row.lastElementChild;
+      if (stopped) { status.textContent = 'skipped'; continue; }
+      status.textContent = 'checking…';
+      for (let attempt = 0; ; attempt++) {
+        try {
+          const r = await lookup(nm, false);
+          row.innerHTML = `
+            <td><img src="${esc(r.user.avatarUrl || '')}" alt="" onerror="this.style.visibility='hidden'"></td>
+            <td><a href="./#${encodeURIComponent(r.user.name)}" target="_blank" rel="noopener">${esc(r.user.displayName)}</a> <span class="muted">@${esc(r.user.name)}</span></td>
+            <td class="score" style="color:${ringColor(r.score)}">${r.score}</td>
+            <td>${esc(r.verdict)}</td>`;
+          paintQuota(r.quota);
+          break;
+        } catch (e) {
+          // The per-minute burst limit clears on its own; the daily one doesn't.
+          if (e.status === 429 && e.code !== 'quota' && attempt < 3) {
+            status.textContent = 'rate limited, retrying…';
+            await sleep(15000);
+            continue;
+          }
+          status.textContent = e.message;
+          if (e.code === 'quota') { paintQuota(e.data.quota); stopped = true; }
+          if (e.code === 'auth') stopped = true;
+          break;
+        }
+      }
+    }
+    bulkGo.disabled = go.disabled = false;
   }
 
   form.addEventListener('submit', (e) => {
@@ -251,7 +323,32 @@ const API_BASE = "https://qytyagyhgvhlygmanqyo.supabase.co/functions/v1/check";
   });
   window.addEventListener('hashchange', () => check(decodeURIComponent(location.hash.slice(1))));
 
-  fetch(healthUrl).then(r => r.json()).then(h => {
+  $('#bulkToggle').addEventListener('click', (e) => {
+    const panel = $('#bulkPanel');
+    panel.hidden = !panel.hidden;
+    e.currentTarget.setAttribute('aria-expanded', String(!panel.hidden));
+    if (!panel.hidden && unlocked) $('#bulkNames').focus();
+  });
+  $('#bulkForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const names = [...new Set($('#bulkNames').value.split(/[\n,]+/).map(x => x.trim()).filter(Boolean))];
+    if (!names.length) return;
+    if (names.length > BULK_MAX || names.some(x => x.length > 40)) {
+      out.innerHTML = `<div class="msg err">Bulk check takes up to ${BULK_MAX} names of at most 40 characters each.</div>`;
+      return;
+    }
+    bulk(names);
+  });
+
+  App.ready.then((state) => {
+    unlocked = state.plan === 'pro' || state.plan === 'self';
+    $('#bulkBadge').hidden = !hosted;
+    $('#bulkForm').hidden = !unlocked;
+    $('#bulkLocked').hidden = unlocked;
+    if (hosted) App.call('check?quota=1').then(paintQuota).catch(() => {});
+  });
+
+  (hosted ? App.call('check?health=1') : fetch('/api/health').then(r => r.json())).then(h => {
     $('#badgeNote').textContent = h.badgeCheck
       ? 'Player-badge check is enabled on this server.'
       : 'Player-badge check is off on this server (it needs a Roblox session cookie). Everything else still works.';

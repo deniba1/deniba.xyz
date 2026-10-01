@@ -1,4 +1,10 @@
 # Only the bits that matter for this project. `supabase link` fills in the rest.
 [functions.check]
-# The checker is a public read-only API; the page calls it without a login.
+# Guests can look accounts up without a login; the function reads the
+# Authorization header itself to tell accounts from guests.
+verify_jwt = false
+
+[functions.billing]
+# The Stripe webhook and the public price route arrive without a Supabase JWT;
+# the signed-in routes verify the caller's token themselves.
 verify_jwt = false

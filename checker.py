@@ -1,8 +1,8 @@
 """Roblox Alt Checker - core logic (no web server in here).
 
 Pulls public data from Roblox's APIs for a username or user ID, scores it, and
-returns a JSON-ready dict. Used by server.py (local/Render/Docker) and by the
-Vercel functions in api/.
+returns a JSON-ready dict. Used by server.py (local/Render/Docker). The Supabase
+Edge Function in supabase/functions/check/index.ts is a port of this file.
 
 Environment variables:
   ROBLOX_COOKIE        optional .ROBLOSECURITY value; enables the player-badge check

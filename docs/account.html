@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Account · Roblox Alt Checker</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f8cff'/%3E%3Cpath d='M9 16.5l4.5 4.5L23 11.5' fill='none' stroke='%23fff' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="bar">
+    <a class="brand" href="./">
+      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#4f8cff"/><path d="M9 16.5l4.5 4.5L23 11.5" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Roblox Alt Checker
+    </a>
+    <nav>
+      <a href="./">Checker</a>
+      <a href="pricing.html" data-hosted-only>Pricing</a>
+      <a class="btn small" id="navAccount" href="account.html" aria-current="page">Sign in</a>
+    </nav>
+  </div>
+</header>
+
+<main class="narrow">
+  <div id="notice" aria-live="polite"></div>
+  <p class="muted" id="vLoading">Loading…</p>
+
+  <section id="vOff" hidden>
+    <h1>Accounts are off</h1>
+    <p class="sub">This copy of the site is self-hosted: there are no accounts or plans, and every feature is unlocked.</p>
+    <a class="btn" href="./">Back to the checker</a>
+  </section>
+
+  <section id="vAuth" hidden>
+    <h1 id="authTitle">Sign in</h1>
+    <p class="sub" id="authSub">Welcome back.</p>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="tabIn" aria-selected="true">Sign in</button>
+      <button type="button" role="tab" id="tabUp" aria-selected="false">Create account</button>
+    </div>
+    <form class="card" id="authForm">
+      <div id="googleBox" hidden>
+        <button type="button" class="secondary block" id="googleBtn">Continue with Google</button>
+        <p class="muted small center" style="margin:8px 0 0">By continuing you confirm you're 13 or older and agree to the
+          <a href="terms.html" target="_blank">Terms</a> and <a href="privacy.html" target="_blank">Privacy Policy</a>.</p>
+        <div class="divider">or</div>
+      </div>
+      <label for="email" style="margin-top:0">Email</label>
+      <input type="email" id="email" autocomplete="email" required>
+      <label for="password">Password</label>
+      <input type="password" id="password" minlength="8" required autocomplete="current-password">
+      <label class="check" id="agreeRow" hidden>
+        <input type="checkbox" id="agree">
+        <span>I'm 13 or older and I agree to the <a href="terms.html" target="_blank">Terms of Service</a> and
+          <a href="privacy.html" target="_blank">Privacy Policy</a>.</span>
+      </label>
+      <button class="block" id="authGo" type="submit" style="margin-top:18px">Sign in</button>
+      <p class="center small" id="forgotRow" style="margin:14px 0 0"><button type="button" class="link" id="forgot">Forgot your password?</button></p>
+    </form>
+  </section>
+
+  <section id="vRecover" hidden>
+    <h1>Choose a new password</h1>
+    <p class="sub">At least 8 characters.</p>
+    <form class="card" id="recoverForm">
+      <label for="newPass" style="margin-top:0">New password</label>
+      <input type="password" id="newPass" minlength="8" required autocomplete="new-password">
+      <button class="block" type="submit" style="margin-top:18px">Save password</button>
+    </form>
+  </section>
+
+  <section id="vAccount" hidden>
+    <h1>Your account</h1>
+    <p class="sub">Plan, usage and billing.</p>
+    <div class="card">
+      <dl class="kv">
+        <dt>Email</dt><dd id="accEmail"></dd>
+        <dt>Plan</dt><dd id="accPlan"></dd>
+        <dt>Today</dt><dd><span id="accUsage">…</span><div class="meter"><i id="accMeter" style="width:0"></i></div></dd>
+      </dl>
+    </div>
+    <div class="card">
+      <h3>Billing</h3>
+      <p id="billingText" style="margin-top:0"></p>
+      <div class="row">
+        <a class="btn" id="upgradeBtn" href="pricing.html" hidden>See Pro</a>
+        <button type="button" class="secondary" id="portalBtn" hidden>Manage billing</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Password</h3>
+      <form class="row" id="passForm">
+        <input type="password" id="passNew" minlength="8" required placeholder="New password" aria-label="New password" autocomplete="new-password" style="flex:1;min-width:180px">
+        <button type="submit" class="secondary">Change</button>
+      </form>
+    </div>
+    <button type="button" class="secondary" id="signOut">Sign out</button>
+    <details class="card" style="margin-top:16px">
+      <summary>Delete account</summary>
+      <p class="muted">This cancels Pro straight away, with no refund for unused time, and permanently deletes your account. Type DELETE to confirm.</p>
+      <form class="row" id="deleteForm">
+        <input type="text" id="deleteConfirm" placeholder="DELETE" aria-label="Type DELETE to confirm" autocomplete="off" required style="flex:1;min-width:140px">
+        <button type="submit" class="danger">Delete account</button>
+      </form>
+    </details>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="bar">
+    <nav>
+      <a href="./">Checker</a>
+      <a href="pricing.html" data-hosted-only>Pricing</a>
+      <a href="account.html" data-hosted-only>Account</a>
+      <a href="terms.html">Terms of Service</a>
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="refunds.html">Refund Policy</a>
+    </nav>
+    <p>Not affiliated with, endorsed by, or sponsored by Roblox Corporation. Roblox is a trademark of Roblox Corporation.</p>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
+<script src="assets/config.js"></script>
+<script src="assets/app.js"></script>
+<script>
+(async () => {
+  const { esc, sb, cfg } = App;
+  const $ = (s) => document.querySelector(s);
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+  const params = new URLSearchParams(location.search);
+  const next = params.get('next') === 'pricing' ? 'pricing.html' : null;
+  // Where email links and Google send people back to.
+  const returnUrl = `${location.origin}${location.pathname}${next ? '?next=pricing' : ''}`;
+
+  const notice = (text, kind = '') => { $('#notice').innerHTML = text ? `<div class="msg ${kind}">${text}</div>` : ''; };
+  function show(id) {
+    for (const v of ['vLoading', 'vOff', 'vAuth', 'vRecover', 'vAccount']) $(`#${v}`).hidden = v !== id;
+  }
+  // Run an async form action with its button disabled; errors land in the notice.
+  async function busy(button, fn) {
+    button.disabled = true;
+    try { await fn(); } catch (e) { notice(esc(e.message), 'err'); } finally { button.disabled = false; }
+  }
+  const must = ({ data, error }) => { if (error) throw error; return data; };
+
+  // ---- Sign in / sign up -------------------------------------------------
+  let mode = 'in';
+  function setMode(m) {
+    mode = m;
+    const up = m === 'up';
+    $('#tabIn').setAttribute('aria-selected', String(!up));
+    $('#tabUp').setAttribute('aria-selected', String(up));
+    $('#authTitle').textContent = up ? 'Create your account' : 'Sign in';
+    $('#authSub').textContent = up ? 'Free accounts get more lookups every day.' : 'Welcome back.';
+    $('#authGo').textContent = up ? 'Create account' : 'Sign in';
+    $('#agreeRow').hidden = !up;
+    $('#agree').required = up;
+    $('#forgotRow').hidden = up;
+    $('#password').autocomplete = up ? 'new-password' : 'current-password';
+  }
+  $('#tabIn').addEventListener('click', () => setMode('in'));
+  $('#tabUp').addEventListener('click', () => setMode('up'));
+
+  $('#authForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    notice('');
+    const email = $('#email').value.trim(), password = $('#password').value;
+    busy($('#authGo'), async () => {
+      if (mode === 'in') {
+        must(await sb.auth.signInWithPassword({ email, password }));
+        location.replace(next || 'account.html');
+        return;
+      }
+      const data = must(await sb.auth.signUp({ email, password, options: { emailRedirectTo: returnUrl } }));
+      if (data.session) location.replace(next || 'account.html');
+      else notice(`Almost there: we've sent a confirmation link to <b>${esc(email)}</b>. Open it to finish signing up. Already have an account? Sign in instead.`, 'ok');
+    });
+  });
+
+  $('#forgot').addEventListener('click', () => {
+    const email = $('#email').value.trim();
+    if (!email) { notice('Type your email above first, then press “Forgot your password?” again.', 'warn'); $('#email').focus(); return; }
+    busy($('#forgot'), async () => {
+      must(await sb.auth.resetPasswordForEmail(email, { redirectTo: `${location.origin}${location.pathname}` }));
+      notice(`If there's an account for <b>${esc(email)}</b>, a password reset link is on its way.`, 'ok');
+    });
+  });
+
+  $('#googleBtn').addEventListener('click', () => busy($('#googleBtn'), async () => {
+    must(await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: returnUrl } }));
+  }));
+
+  $('#recoverForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    busy(e.target.querySelector('button'), async () => {
+      must(await sb.auth.updateUser({ password: $('#newPass').value }));
+      notice('Password updated.', 'ok');
+      showAccount(await App.loadState());
+    });
+  });
+
+  // ---- Signed-in view ----------------------------------------------------
+  const longDate = (iso) => new Date(iso).toLocaleDateString(undefined, { dateStyle: 'long' });
+
+  function showAccount(state) {
+    const p = state.profile || {};
+    const pro = state.plan === 'pro';
+    $('#accEmail').textContent = state.user.email;
+    $('#accPlan').innerHTML = `<span class="badge ${pro ? 'pro' : ''}">${pro ? 'Pro' : 'Free'}</span>`;
+
+    let text = 'You\'re on the Free plan.';
+    if (pro && p.subscription_status === 'past_due') text = 'Your last payment didn\'t go through. Update your payment method under “Manage billing” to keep Pro.';
+    else if (pro && p.cancel_at_period_end && p.current_period_end) text = `Pro is cancelled and ends on ${longDate(p.current_period_end)}. You can resume it under “Manage billing”.`;
+    else if (pro && p.current_period_end) text = `Pro renews on ${longDate(p.current_period_end)}.`;
+    else if (pro) text = 'You\'re on Pro.';
+    $('#billingText').textContent = text;
+    $('#upgradeBtn').hidden = pro;
+    $('#portalBtn').hidden = !p.stripe_customer_id;
+    show('vAccount');
+
+    App.call('check?quota=1').then((qt) => {
+      $('#accUsage').textContent = `${qt.used.toLocaleString()} of ${qt.limit.toLocaleString()} lookups used · resets 00:00 UTC`;
+      $('#accMeter').style.width = `${Math.min(100, (qt.used / qt.limit) * 100)}%`;
+    }).catch(() => { $('#accUsage').textContent = 'Usage is unavailable right now.'; });
+  }
+
+  // After Stripe Checkout the webhook flips the plan a moment later; wait for it.
+  async function awaitPro() {
+    notice('Payment received. Switching your account to Pro…', 'ok');
+    for (let i = 0; i < 15; i++) {
+      const state = await App.loadState();
+      if (state.plan === 'pro') {
+        notice('You\'re on Pro. Thank you!', 'ok');
+        showAccount(state);
+        $('#navAccount .badge')?.replaceWith(Object.assign(document.createElement('span'), { className: 'badge pro', textContent: 'Pro' }));
+        return;
+      }
+      await sleep(2000);
+    }
+    notice('Payment received. Pro can take a minute to switch on; reload this page shortly.', 'warn');
+  }
+
+  $('#portalBtn').addEventListener('click', () => busy($('#portalBtn'), async () => {
+    const { url } = await App.call('billing/portal', { method: 'POST' });
+    location.href = url;
+  }));
+
+  $('#passForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    busy(e.target.querySelector('button'), async () => {
+      must(await sb.auth.updateUser({ password: $('#passNew').value }));
+      $('#passNew').value = '';
+      notice('Password updated.', 'ok');
+    });
+  });
+
+  $('#signOut').addEventListener('click', () => busy($('#signOut'), async () => {
+    await sb.auth.signOut();
+    location.replace('account.html');
+  }));
+
+  $('#deleteForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    if ($('#deleteConfirm').value.trim() !== 'DELETE') { notice('Type DELETE in capitals to confirm.', 'warn'); return; }
+    busy(e.target.querySelector('button'), async () => {
+      await App.call('billing/delete-account', { method: 'POST' });
+      await sb.auth.signOut({ scope: 'local' });
+      notice('Your account has been deleted.', 'ok');
+      setMode('up');
+      show('vAuth');
+    });
+  });
+
+  // ---- Start -------------------------------------------------------------
+  const state = await App.ready;
+  if (!App.hosted) { show('vOff'); return; }
+  $('#googleBox').hidden = !cfg.googleLogin;
+  if (App.authError) notice(esc(App.authError), 'err');
+
+  if (!state.user) {
+    setMode(location.hash === '#signup' ? 'up' : 'in');
+    show('vAuth');
+  } else if (App.recovery) {
+    show('vRecover');
+  } else if (next) {
+    location.replace(next);
+  } else {
+    showAccount(state);
+    if (params.get('checkout') === 'success') {
+      history.replaceState(null, '', location.pathname);
+      if (state.plan !== 'pro') awaitPro();
+      else notice('You\'re on Pro. Thank you!', 'ok');
+    }
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,20 +1,42 @@
 // Roblox Alt Checker - Supabase Edge Function (Deno).
 //
-// GET  ?q=<username|userId>[&fresh=1]  -> lookup JSON
-// GET  ?health=1                       -> {ok, badgeCheck}
+// GET  ?q=<username|userId>[&fresh=1]  -> lookup JSON (+ quota when accounts are on)
+// GET  ?quota=1                        -> the caller's plan and today's allowance
+// GET  ?health=1                       -> {ok, badgeCheck, accounts}
+//
+// Send `Authorization: Bearer <Supabase access token>` to be counted as that
+// account; without it the caller is a guest, counted by IP.
 //
 // Secrets (set with `supabase secrets set` or in the dashboard):
 //   ROBLOX_COOKIE       optional .ROBLOSECURITY; enables the player-badge check
 //   CACHE_TTL           seconds to cache a lookup (default 600)
 //   RATE_LIMIT_PER_MIN  lookups per client IP per minute (default 20)
 //   ALLOWED_ORIGIN      CORS origin (default "*")
+//   GUEST_DAILY_LIMIT   lookups per day without an account (default 3)
+//   FREE_DAILY_LIMIT    lookups per day on a free account (default 10)
+//   PRO_DAILY_LIMIT     lookups per day on Pro (default 500)
+//   IP_HASH_SALT        optional salt for the guest IP hash
 //
-// This is a line-for-line port of checker.py; keep the two in sync.
+// The Roblox and scoring sections are a line-for-line port of checker.py; keep
+// the two in sync. Accounts and quotas exist only here.
 
 const ROBLOX_COOKIE = (Deno.env.get("ROBLOX_COOKIE") ?? "").trim();
 const CACHE_TTL = Number(Deno.env.get("CACHE_TTL") ?? "600");
 const RATE_LIMIT_PER_MIN = Number(Deno.env.get("RATE_LIMIT_PER_MIN") ?? "20");
 const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "*";
+
+// Supabase injects these into every Edge Function. Without them (a bare
+// `deno run`) accounts are off and lookups are only burst-limited.
+const SUPABASE_URL = (Deno.env.get("SUPABASE_URL") ?? "").replace(/\/+$/, "");
+const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+const ACCOUNTS = Boolean(SUPABASE_URL && SERVICE_KEY);
+const LIMITS = {
+  guest: Number(Deno.env.get("GUEST_DAILY_LIMIT") ?? "3"),
+  free: Number(Deno.env.get("FREE_DAILY_LIMIT") ?? "10"),
+  pro: Number(Deno.env.get("PRO_DAILY_LIMIT") ?? "500"),
+};
+const IP_HASH_SALT = Deno.env.get("IP_HASH_SALT") ?? SERVICE_KEY;
 
 const WEARABLE_TYPES =
   "Hat,HairAccessory,FaceAccessory,NeckAccessory,ShoulderAccessory," +
@@ -508,16 +530,24 @@ async function lookup(query: string) {
 const cache = new Map<string, [number, Json]>();
 const hits = new Map<string, number[]>();
 
+const cacheKey = (query: string) => query.trim().toLowerCase().replace(/^@/, "");
+const isPartial = (result: Json) => result.notes.some((n: string) => n.includes("429"));
+
+function cacheGet(query: string): Json | null {
+  const hit = cache.get(cacheKey(query));
+  return hit && Date.now() / 1000 - hit[0] < CACHE_TTL ? hit[1] : null;
+}
+
 async function cachedLookup(query: string, fresh: boolean) {
-  const key = query.trim().toLowerCase().replace(/^@/, "");
+  const key = cacheKey(query);
   const now = Date.now() / 1000;
   if (!fresh) {
-    const hit = cache.get(key);
-    if (hit && now - hit[0] < CACHE_TTL) return { ...hit[1], cached: true };
+    const hit = cacheGet(query);
+    if (hit) return { ...hit, cached: true };
   }
   const result = await lookup(query);
   // A partly rate-limited result is cached only briefly so a re-check can fill it in.
-  const stamp = result.notes.some((n: string) => n.includes("429")) ? now - CACHE_TTL + 30 : now;
+  const stamp = isPartial(result) ? now - CACHE_TTL + 30 : now;
   cache.set(key, [stamp, result]);
   cache.set(String(result.user.id), [stamp, result]);
   cache.set((result.user.name ?? "").toLowerCase(), [stamp, result]);
@@ -540,6 +570,88 @@ function rateLimited(ip: string): boolean {
 }
 
 // ---------------------------------------------------------------------------
+// Accounts + daily quotas (tables and RPCs: supabase/migrations)
+// ---------------------------------------------------------------------------
+type Plan = "guest" | "free" | "pro";
+interface Caller {
+  plan: Plan;
+  subject: string; // usage key: "u:<user id>" or "ip:<hash>"
+}
+
+class AuthError extends Error {}
+
+const SERVICE_HEADERS = { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` };
+// A missed cancellation webhook must not mean Pro forever.
+const PERIOD_GRACE_MS = 3 * 86_400_000;
+
+/** Call the project's PostgREST API as the service role. */
+async function db(path: string, init: { method?: string; body?: Json } = {}): Promise<Json> {
+  const resp = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    method: init.method ?? "GET",
+    headers: { ...SERVICE_HEADERS, "Content-Type": "application/json" },
+    body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
+    signal: AbortSignal.timeout(10000),
+  });
+  const text = await resp.text();
+  if (!resp.ok) throw new Error(`database ${resp.status}: ${text.slice(0, 200)}`);
+  return text ? JSON.parse(text) : null;
+}
+
+async function hashIp(ip: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${IP_HASH_SALT}:${ip}`));
+  return [...new Uint8Array(digest)].slice(0, 16).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** Work out who is calling: a signed-in account (free or pro) or a guest. */
+async function identify(req: Request, ip: string): Promise<Caller> {
+  const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  // supabase-js sends the project's public key as the bearer when nobody is signed in.
+  if (!token || token === ANON_KEY || token.startsWith("sb_publishable_")) {
+    return { plan: "guest", subject: `ip:${await hashIp(ip)}` };
+  }
+  const resp = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(10000),
+  });
+  if (resp.status === 401 || resp.status === 403) {
+    await resp.body?.cancel();
+    throw new AuthError("Your session has expired. Sign in again.");
+  }
+  if (!resp.ok) throw new Error(`auth ${resp.status}: ${(await resp.text()).slice(0, 200)}`);
+  const user = await resp.json();
+  const rows = await db(`profiles?id=eq.${encodeURIComponent(user.id)}&select=plan,current_period_end`);
+  const p = rows?.[0];
+  const lapsed = p?.current_period_end && Date.parse(p.current_period_end) + PERIOD_GRACE_MS < Date.now();
+  return { plan: p?.plan === "pro" && !lapsed ? "pro" : "free", subject: `u:${user.id}` };
+}
+
+/** Take one lookup from today's allowance. Returns the new count, or null when it's used up. */
+const consume = (c: Caller): Promise<number | null> =>
+  db("rpc/consume_lookup", { method: "POST", body: { p_subject: c.subject, p_limit: LIMITS[c.plan] } });
+
+const refund = (c: Caller) => db("rpc/refund_lookup", { method: "POST", body: { p_subject: c.subject } });
+
+async function usedToday(c: Caller): Promise<number> {
+  const day = new Date().toISOString().slice(0, 10);
+  const rows = await db(`usage?subject=eq.${encodeURIComponent(c.subject)}&day=eq.${day}&select=count`);
+  return rows?.[0]?.count ?? 0;
+}
+
+function quota(c: Caller, used: number) {
+  const limit = LIMITS[c.plan];
+  const reset = new Date();
+  reset.setUTCHours(24, 0, 0, 0);
+  return { plan: c.plan, limit, used: Math.min(used, limit), remaining: Math.max(0, limit - used), resetsAt: reset.toISOString() };
+}
+
+function quotaMessage(plan: Plan): string {
+  const n = LIMITS[plan];
+  if (plan === "guest") return `You've used today's ${n} guest lookups. Create a free account for ${LIMITS.free} a day.`;
+  if (plan === "free") return `You've used today's ${n} free lookups. Upgrade to Pro for ${LIMITS.pro} a day, or come back tomorrow.`;
+  return `You've reached today's ${n}-lookup Pro limit. It resets at 00:00 UTC.`;
+}
+
+// ---------------------------------------------------------------------------
 // HTTP entry point
 // ---------------------------------------------------------------------------
 const CORS = {
@@ -558,22 +670,50 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
   if (req.method !== "GET") return json(405, { error: "GET only" });
   const url = new URL(req.url);
-  if (url.searchParams.has("health")) return json(200, { ok: true, badgeCheck: Boolean(ROBLOX_COOKIE) });
-
-  const q = url.searchParams.get("q") ?? "";
-  const fresh = url.searchParams.get("fresh") === "1";
-  if (!q.trim()) return json(400, { error: "Missing ?q=username-or-id" });
-  if (q.length > 40) return json(400, { error: "Query too long" });
-  const ip = (req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? "unknown")
+  if (url.searchParams.has("health")) {
+    return json(200, { ok: true, badgeCheck: Boolean(ROBLOX_COOKIE), accounts: ACCOUNTS });
+  }
+  // Prefer cf-connecting-ip when the platform passes it: the first
+  // x-forwarded-for entry can be supplied by the client.
+  const ip = (req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for") ?? "unknown")
     .split(",")[0].trim();
-  if (rateLimited(ip)) return json(429, { error: "Slow down: too many lookups this minute." });
 
   try {
-    return json(200, await cachedLookup(q, fresh));
+    const caller = ACCOUNTS ? await identify(req, ip) : null;
+    if (url.searchParams.has("quota")) {
+      if (!caller) return json(200, { accounts: false });
+      return json(200, { accounts: true, ...quota(caller, await usedToday(caller)), limits: LIMITS });
+    }
+
+    const q = url.searchParams.get("q") ?? "";
+    const fresh = url.searchParams.get("fresh") === "1";
+    if (!q.trim()) return json(400, { error: "Missing ?q=username-or-id" });
+    if (q.length > 40) return json(400, { error: "Query too long" });
+    if (rateLimited(ip)) return json(429, { error: "Slow down: too many lookups this minute." });
+    if (!caller) return json(200, await cachedLookup(q, fresh));
+
+    // Cached results are free. Skipping the cache is a Pro feature, except that
+    // anyone may re-run a result Roblox rate-limited part of.
+    const hit = cacheGet(q);
+    if (hit && !(fresh && (caller.plan === "pro" || isPartial(hit)))) {
+      return json(200, { ...hit, cached: true, quota: quota(caller, await usedToday(caller)) });
+    }
+    const used = await consume(caller);
+    if (used === null) {
+      return json(429, { error: quotaMessage(caller.plan), code: "quota", quota: quota(caller, LIMITS[caller.plan]) });
+    }
+    try {
+      return json(200, { ...(await cachedLookup(q, true)), quota: quota(caller, used) });
+    } catch (e) {
+      // Nothing was delivered, so don't charge for it.
+      await refund(caller).catch((err) => console.error("refund failed", err));
+      throw e;
+    }
   } catch (e) {
+    if (e instanceof AuthError) return json(401, { error: e.message, code: "auth" });
     if (e instanceof NotFound) return json(404, { error: e.message });
     if (e instanceof RobloxError) return json(502, { error: `Roblox API error: ${e.message}` });
-    console.error("lookup failed", q, e);
+    console.error("request failed", e);
     return json(500, { error: "Internal error" });
   }
 });
