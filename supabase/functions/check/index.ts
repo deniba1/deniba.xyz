@@ -38,7 +38,7 @@
 // ".ROBLOSECURITY=" prefix, and any character an HTTP header cannot carry
 // (a smart quote or non-breaking space makes fetch() reject the request).
 const ROBLOX_COOKIE = (Deno.env.get("ROBLOX_COOKIE") ?? "")
-  .trim().replace(/^["']|["']$/g, "").replace(/^.?ROBLOSECURITY=/i, "").replace(/[^!-~]/g, "");
+  .trim().replace(/^["']|["']$/g, "").replace(/^\.?ROBLOSECURITY=/i, "").replace(/[^!-~]/g, "");
 const CACHE_TTL = Number(Deno.env.get("CACHE_TTL") ?? "600");
 const RATE_LIMIT_PER_MIN = Number(Deno.env.get("RATE_LIMIT_PER_MIN") ?? "20");
 const GLOBAL_PER_MIN = Number(Deno.env.get("GLOBAL_PER_MIN") ?? "60");
