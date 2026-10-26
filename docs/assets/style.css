@@ -255,3 +255,32 @@ table.verdicts td:nth-child(2) { white-space: nowrap; font-weight: 700; }
   table.verdicts td { border: 0; padding: 0; }
   table.verdicts td:nth-child(3) { grid-column: 1 / -1; color: var(--muted); font-size: 14px; }
 }
+
+/* ---- Guides, About, Contact ---- */
+.prose .lede { font-size: 17px; color: var(--muted); margin: 0 0 24px; }
+.prose h3 { margin-top: 24px; }
+.prose code { background: var(--panel2); padding: 1px 6px; border-radius: 6px; font-size: 0.92em; }
+.prose table.verdicts { margin: 14px 0 18px; }
+.prose table.verdicts td:nth-child(2) { font-weight: 500; white-space: normal; }
+.prose .faq dd { color: var(--text); }
+.crumbs { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
+.crumbs a { color: var(--muted); text-decoration: none; }
+.crumbs a:hover { color: var(--text); }
+.byline { color: var(--muted); font-size: 14px; margin: 0 0 28px; }
+.byline a { color: var(--muted); }
+.guide-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 20px 0 0; }
+.guide-list .card.guide { margin: 0; text-decoration: none; color: var(--text); display: block; }
+.guide-list .card.guide:hover { border-color: var(--accent); }
+.guide-list .card.guide h3 { margin: 0 0 8px; font-size: 16px; line-height: 1.35; }
+.guide-list .card.guide p { margin: 0; color: var(--muted); font-size: 14px; }
+.try { border-color: var(--accent); margin-top: 36px; }
+.try h2 { margin-top: 0; }
+.try p { margin: 0 0 14px; }
+.more { margin-top: 36px; }
+.more h2 { margin-bottom: 4px; }
+.guides-teaser { margin-top: 32px; }
+.guides-teaser > h2 { margin-bottom: 4px; }
+.guides-teaser .all { display: inline-block; margin-top: 14px; }
+@media (max-width: 520px) {
+  table.verdicts td:nth-child(2) { white-space: normal; }
+}
