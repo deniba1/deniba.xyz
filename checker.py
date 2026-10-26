@@ -82,6 +82,8 @@ def roblox(url, method="GET", body=None, auth=False, csrf=False, retries=4):
                 msg = payload[:200].decode(errors="replace")
             if e.code == 404:
                 raise NotFound(msg or "not found") from None
+            if e.code == 401 and auth:
+                raise RobloxError("HTTP 401: Roblox rejected the server's login cookie; the ROBLOX_COOKIE secret needs a fresh value") from None
             raise RobloxError(f"HTTP {e.code}: {msg or 'error'}") from None
         except (urllib.error.URLError, TimeoutError, OSError) as e:
             if attempt < retries - 1:

@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f5f6fa" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0d12" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="site.webmanifest">
 <meta name="google-adsense-account" content="ca-pub-1335354496523169">
 <title>Roblox Alt Checker – Is That Account an Alt? Free Lookup</title>
 <meta name="description" content="Free Roblox alt account checker. Enter any username or user ID and get an alt score from public profile data, with every signal explained. No Roblox login.">
@@ -23,8 +26,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700&display=swap">
-<link rel="stylesheet" href="assets/style.css?v=13">
-<script src="assets/theme.js?v=13"></script>
+<link rel="stylesheet" href="assets/style.css?v=14">
+<script src="assets/theme.js?v=14"></script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -43,8 +46,89 @@
   }
 }
 </script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is a Roblox alt account?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "An alt, short for alternate account, is a second account someone makes alongside their main one. People use alts for testing, trading, extra storage or a fresh start. Game and group owners mostly care about the ones made to get around a ban or to hide who is behind an account."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I check if a Roblox account is an alt?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Type the username or user ID into the box at the top of this page and press Check. A few seconds later you get a score from 0 to 100, a verdict, the account's public stats, and the list of signals behind the score."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How accurate is the alt score?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "It's an estimate, not proof. The checker only sees what Roblox shows publicly, so it can't see IP addresses, Robux, or who owns an account. A new, quiet main with a private inventory can score like an alt, and an alt that someone has dressed up and played on can score like a main."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What does a deep check add?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "It looks past the profile at the account's friends. It reads the friends list, estimates how old each friend's account is, looks more closely at a spread of them, and checks which of them are friends with each other. A main account usually sits in a circle of older accounts that know one another; an alt is often surrounded by new, empty profiles. The result is drawn as a web and moves the score up or down. Deep checks need an account."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can it tell me whose alt an account is?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. A deep check may point out friends with near-identical usernames, but nothing here can establish who is behind an account, and a shared name is not proof of anything."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Will the person know I checked their account?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. The checker reads the same public profile information anyone can open on Roblox. Nothing is sent to the account and nobody is notified."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Do I need to log in with Roblox or give my password?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. You only type the name of the account you want to check. This site never asks for your Roblox login, password or cookie, and you should never give those to any website."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is it free?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. You can run a few lookups a day without signing up, and more with a free account. Pro raises the daily limit, removes ads and adds bulk checks; the details are on the pricing page."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is this an official Roblox tool?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. It's an independent website and isn't affiliated with, endorsed by, or sponsored by Roblox Corporation."
+      }
+    }
+  ]
+}
+</script>
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 <header class="site-header">
   <div class="bar">
     <a class="brand" href="./">
@@ -65,7 +149,7 @@
   </div>
 </header>
 
-<main>
+<main id="main">
   <section class="hero" aria-labelledby="heroTitle">
     <p class="eyebrow"><i aria-hidden="true"></i> Free · Public data only · No Roblox login</p>
     <h1 id="heroTitle">Is that Roblox account <em>an alt?</em></h1>
@@ -78,7 +162,7 @@
       </form>
     </div>
     <p class="examples">Try <a href="#builderman">builderman</a> · <a href="#Roblox">Roblox</a> · <a href="#156">156</a></p>
-    <p class="quota" id="quota"></p>
+    <p class="quota" id="quota" aria-live="polite"></p>
     <ul class="trust" aria-label="What to expect">
       <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Never asks for your password or cookie</li>
       <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>Every signal and its points shown</li>
@@ -246,6 +330,8 @@
       <a href="terms.html">Terms of Service</a>
       <a href="privacy.html">Privacy Policy</a>
       <a href="refunds.html">Refund Policy</a>
+      <a href="changelog.html">Changelog</a>
+      <a href="https://github.com/deniba1/deniba.xyz" rel="noopener">Source</a>
       <a href="contact.html">Contact</a>
     </nav>
     <p>Not affiliated with, endorsed by, or sponsored by Roblox Corporation. Roblox is a trademark of Roblox Corporation.</p>
@@ -253,8 +339,8 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<script src="assets/config.js?v=13"></script>
-<script src="assets/app.js?v=13"></script>
+<script src="assets/config.js?v=14"></script>
+<script src="assets/app.js?v=14"></script>
 <script>
 (() => {
   const { esc, hosted } = App;
@@ -332,6 +418,32 @@
     if (days < 60) return `${days} day${days === 1 ? '' : 's'} old`;
     if (days < 730) return `${Math.floor(days / 30)} months old`;
     return `${(days / 365).toFixed(1)} years old`;
+  }
+
+  // How much pushed each way, as a two-colour bar.
+  function balance(signals) {
+    const alt = signals.filter(x => x.points > 0).reduce((a, x) => a + x.points, 0);
+    const main = -signals.filter(x => x.points < 0).reduce((a, x) => a + x.points, 0);
+    const total = alt + main || 1;
+    return `<div class="balance" role="img" aria-label="${main} points toward main, ${alt} points toward alt">
+      <span class="b-main">−${main} toward main</span>
+      <div class="b-bar"><i class="b-m" style="width:${(main / total * 100).toFixed(1)}%"></i><i class="b-a" style="width:${(alt / total * 100).toFixed(1)}%"></i></div>
+      <span class="b-alt">+${alt} toward alt</span>
+    </div>`;
+  }
+
+  // After a result is painted: animate the ring, wire the copy-link button.
+  function wireResult(r) {
+    const circle = out.querySelector('.ring circle:last-child');
+    if (circle) requestAnimationFrame(() => requestAnimationFrame(() => circle.setAttribute('stroke-dasharray', circle.dataset.dash)));
+    const copy = document.getElementById('copyLink');
+    if (!copy) return;
+    copy.addEventListener('click', async () => {
+      const url = `${location.origin}${location.pathname}#${encodeURIComponent(r.user.name)}`;
+      try { await navigator.clipboard.writeText(url); copy.textContent = 'Link copied'; }
+      catch { prompt('Copy this link', url); }
+      setTimeout(() => { copy.textContent = 'Copy link to this result'; }, 1800);
+    });
   }
 
   function ringColor(score) {
@@ -420,13 +532,14 @@
           <svg width="120" height="120" viewBox="0 0 120 120">
             <circle cx="60" cy="60" r="52" fill="none" stroke="var(--border)" stroke-width="10"/>
             <circle cx="60" cy="60" r="52" fill="none" stroke="${ringColor(r.score)}" stroke-width="10"
-              stroke-linecap="round" stroke-dasharray="${dash} ${circ - dash}"/>
+              stroke-linecap="round" stroke-dasharray="0 ${circ}" data-dash="${dash} ${circ - dash}"/>
           </svg>
           <div class="num">${r.score}<small>alt score</small></div>
         </div>
         <div>
           <div class="label" style="color:${ringColor(r.score)}">${esc(r.verdict)}</div>
           <div class="summary">${esc(r.summary)}</div>
+          <div class="verdict-actions"><button type="button" class="small secondary" id="copyLink">Copy link to this result</button></div>
         </div>
       </div>
 
@@ -442,6 +555,7 @@
 
       <div class="card">
         <h3>Why this score</h3>
+        ${balance(r.signals)}
         <div class="signals">
           ${r.signals.map(sg => `
             <div class="sig">
@@ -726,6 +840,7 @@
       await App.ready;
       const data = await lookup(name, fresh);
       render(data);
+      wireResult(data);
       paintDebug(data);
       App.showAd('bottom');
       paintQuota(data.quota);
@@ -849,6 +964,14 @@
       : 'Player-badge check is off on this server (it needs a Roblox session cookie). Everything else still works.';
   }).catch(() => {});
 
+  // "/" jumps to the search box, as on most search-driven sites.
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+    e.preventDefault();
+    q.focus();
+    q.select();
+  });
   renderRecent();
   if (location.hash.length > 1) check(decodeURIComponent(location.hash.slice(1)));
   else q.focus();

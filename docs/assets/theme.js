@@ -1,6 +1,8 @@
 // Light/dark theme. Loaded in <head> so the choice is applied before the page
 // paints. A saved choice wins; otherwise the theme follows the system setting.
 (() => {
+  // The site is only meant to be used over HTTPS; the DNS edge doesn't redirect yet.
+  if (location.protocol === 'http:' && location.hostname.endsWith('deniba.xyz')) location.replace(location.href.replace(/^http:/, 'https:'));
   const root = document.documentElement;
   const system = matchMedia('(prefers-color-scheme: light)');
   let choice = null;

@@ -1,0 +1,15 @@
+{
+  "name": "Roblox Alt Checker",
+  "short_name": "Alt Checker",
+  "description": "Is that Roblox account an alt? Enter a username or user ID and get a 0 to 100 score from public profile data, with every signal explained.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "minimal-ui",
+  "background_color": "#0b0d12",
+  "theme_color": "#4f8cff",
+  "icons": [
+    { "src": "/favicon.png", "sizes": "96x96", "type": "image/png" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

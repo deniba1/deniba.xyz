@@ -408,6 +408,27 @@ table.verdicts td:nth-child(2) { white-space: nowrap; font-weight: 700; }
 .more { margin-top: 44px; }
 .more h2 { margin-bottom: 4px; border: 0; padding-top: 0; }
 
+/* ---- Skip link, result extras, guide contents ---- */
+.skip { position: absolute; left: 16px; top: -60px; z-index: 100; padding: 8px 12px; background: var(--accent); color: #fff; border-radius: 8px; text-decoration: none; font-weight: 600; }
+.skip:focus { top: 12px; outline-offset: 0; }
+.verdict-actions { margin-top: 12px; }
+.balance { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; margin: 0 0 14px; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.balance .b-main { color: var(--good); }
+.balance .b-alt { color: var(--bad); }
+.b-bar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: var(--border); }
+.b-bar i { display: block; height: 100%; }
+.b-bar .b-m { background: var(--good); }
+.b-bar .b-a { background: var(--bad); }
+.toc { margin: 0 0 30px; padding: 16px 18px; border: 1px solid var(--border); border-radius: 14px; background: var(--panel); font-size: 15px; line-height: 1.5; }
+.toc-title { margin: 0 0 8px; font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.toc ul { list-style: none; margin: 0; padding: 0; columns: 2; column-gap: 28px; }
+.toc li { margin: 4px 0; break-inside: avoid; padding-left: 14px; position: relative; }
+.toc li::before { content: ""; position: absolute; left: 0; top: 10px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); opacity: .7; }
+.toc a { text-decoration: none; color: var(--text); }
+.toc a:hover { color: var(--accent); }
+.release h2 { display: block; }
+.release h2 time { display: block; margin-bottom: 4px; font-family: var(--font-body); font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+
 /* ---- Small screens ---- */
 @media (max-width: 720px) {
   main { padding: 28px 16px 56px; }
@@ -440,6 +461,10 @@ table.verdicts td:nth-child(2) { white-space: nowrap; font-weight: 700; }
   .prose table.verdicts tr { padding: 8px 12px; }
   .prose table.verdicts tr:first-child { border-top: 0; }
   .verdict { gap: 16px; }
+  .toc ul { columns: 1; }
+  .balance { grid-template-columns: 1fr 1fr; }
+  .balance .b-bar { grid-column: 1 / -1; order: -1; }
+  .balance .b-alt { text-align: right; }
   .ring { width: 108px; height: 108px; }
   .ring .num { font-size: 26px; }
   .ring .num small { font-size: 9px; }

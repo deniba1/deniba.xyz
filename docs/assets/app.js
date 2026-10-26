@@ -105,7 +105,37 @@ const App = (() => {
     }
   }
 
+  // Guides: an "On this page" list built from the article's section headings.
+  function buildToc() {
+    const article = document.querySelector('main.article');
+    if (!article) return;
+    const heads = [...article.querySelectorAll('h2')].filter((h) => !h.closest('.try, .more'));
+    if (heads.length < 4) return;
+    const slug = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const nav = document.createElement('nav');
+    nav.className = 'toc';
+    nav.setAttribute('aria-label', 'On this page');
+    nav.innerHTML = '<p class="toc-title">On this page</p>';
+    const ol = document.createElement('ul');
+    for (const h of heads) {
+      if (!h.id) {
+        let id = slug(h.textContent), n = 2;
+        while (document.getElementById(id)) id = `${slug(h.textContent)}-${n++}`;
+        h.id = id;
+      }
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = `#${h.id}`;
+      a.textContent = h.textContent;
+      li.append(a);
+      ol.append(li);
+    }
+    nav.append(ol);
+    (article.querySelector('.byline') || article.querySelector('h1')).after(nav);
+  }
+
   fillConfig();
+  buildToc();
   if (!hosted) for (const el of document.querySelectorAll('[data-hosted-only]')) el.hidden = true;
   // Never rejects: if Supabase can't be reached the page still works as a guest.
   const ready = loadState()

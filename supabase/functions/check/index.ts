@@ -145,6 +145,9 @@ async function roblox(url: string, opts: CallOpts = {}): Promise<Json> {
       msg = payload.slice(0, 200);
     }
     if (resp.status === 404) throw new NotFound(msg || "not found");
+    if (resp.status === 401 && auth) {
+      throw new RobloxError("HTTP 401: Roblox rejected the server's login cookie; the ROBLOX_COOKIE secret needs a fresh value");
+    }
     throw new RobloxError(`HTTP ${resp.status}: ${msg || "error"}`);
   }
   throw new RobloxError("retries exhausted");
