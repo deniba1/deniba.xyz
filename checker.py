@@ -22,7 +22,7 @@ from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
-ROBLOX_COOKIE = os.environ.get("ROBLOX_COOKIE", "").strip()
+ROBLOX_COOKIE = re.sub(r"[^!-~]", "", re.sub(r"^.?ROBLOSECURITY=", "", os.environ.get("ROBLOX_COOKIE", "").strip().strip("\"'"), flags=re.I))  # pasted by hand: strip quotes, prefix, stray characters
 CACHE_TTL = int(os.environ.get("CACHE_TTL", "600"))
 RATE_LIMIT_PER_MIN = int(os.environ.get("RATE_LIMIT_PER_MIN", "20"))
 DEEP_SAMPLE = int(os.environ.get("DEEP_SAMPLE", "20"))
