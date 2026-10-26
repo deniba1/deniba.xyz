@@ -23,8 +23,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700&display=swap">
-<link rel="stylesheet" href="assets/style.css?v=12">
-<script src="assets/theme.js?v=12"></script>
+<link rel="stylesheet" href="assets/style.css?v=13">
+<script src="assets/theme.js?v=13"></script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -243,8 +243,8 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<script src="assets/config.js?v=12"></script>
-<script src="assets/app.js?v=12"></script>
+<script src="assets/config.js?v=13"></script>
+<script src="assets/app.js?v=13"></script>
 <script>
 (() => {
   const { esc, hosted } = App;
@@ -254,6 +254,26 @@
   const plus = (o) => o ? n(o.count) + (o.truncated ? '+' : '') : '—';
   const sleep = (ms) => new Promise(r => setTimeout(r, ms));
   const BULK_MAX = 20;
+  // 16px line icons for the stat tiles.
+  const ICON = (() => {
+    const w = (d) => `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+    return {
+      friends: w('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>'),
+      followers: w('<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/>'),
+      following: w('<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M17 11l2 2 4-4"/>'),
+      groups: w('<path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/>'),
+      badge: w('<path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 14.3 7.2 16.9l.9-5.4L4.2 7.7l5.4-.8z"/>'),
+      award: w('<circle cx="12" cy="8" r="6"/><path d="M8.2 13.9L7 22l5-3 5 3-1.2-8.1"/>'),
+      star: w('<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.7z"/>'),
+      gamepad: w('<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4M8 10v4M15 13h.01M18 11h.01"/>'),
+      gem: w('<path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20M12 21l-4-12 4-6 4 6-4 12"/>'),
+      shirt: w('<path d="M20.4 6.5l-4-2.5a4.4 4.4 0 0 1-8.8 0l-4 2.5L2 10l3 1.5V21h14v-9.5L22 10z"/>'),
+      user: w('<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>'),
+      calendar: w('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'),
+      tag: w('<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z"/><path d="M7 7h.01"/>'),
+      activity: w('<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>'),
+    };
+  })();
   // Refusals that last until tomorrow: the caller's own allowance, their
   // network's, or the whole site's. Waiting a minute won't help.
   const isDailyLimit = (e) => ['quota', 'network', 'global'].includes(e.code);
@@ -314,22 +334,58 @@
     const circ = 2 * Math.PI * 52;
     const dash = circ * (r.score / 100);
 
-    const stats = [
-      ['Friends', n(s.friends)],
-      ['Followers', n(s.followers)],
-      ['Following', n(s.following)],
-      ['Player badges', pb ? n(pb.count) + (pb.truncated ? '+' : '') : 'n/a',
-        pb?.timing ? `${n(pb.timing.farmed)} in bursts · earned on ${n(pb.timing.days)} day${pb.timing.days === 1 ? '' : 's'}` : pb?.sample?.join(', ')],
-      ['Roblox badges', s.robloxBadges ? s.robloxBadges.length : '—', s.robloxBadges?.join(', ')],
-      ['Favorites', plus(s.favorites), s.favorites?.sample?.join(', ')],
-      ['Groups', s.groups ? n(s.groups.count) : '—', s.groups?.sample?.join(', ')],
-      ['Limited items', inv === false ? 'private' : plus(col), col && col.count ? `RAP ${n(col.rap)}` : ''],
-      ['Paid wearables', inv === false ? 'private' : s.wearables ? n(s.wearables.paid) + (s.wearables.truncated ? '+' : '') : '—', s.wearables ? `${n(s.wearables.free)} free excluded` : ''],
-      ['Created games', s.createdGames ? n(s.createdGames.count) : '—', s.createdGames?.count ? `${n(s.createdGames.visits)} visits · ${s.createdGames.sample.join(', ')}` : ''],
-      ['Avatar', s.avatar ? `${s.avatar.type || '?'} · ${s.avatar.assetCount} items` : '—'],
-      ['Past names', s.previousNames ? s.previousNames.length : '—', s.previousNames?.join(', ')],
-      ['Status', s.presence ? s.presence.status : '—', s.presence?.lastLocation || ''],
+    // Stats, grouped, each with a tone: which way this figure pushes the score,
+    // using the same thresholds as the scorer. null = neutral or unknown.
+    const real = pb ? pb.count - (pb.timing?.farmed ?? 0) : null;
+    const wear = s.wearables, av = s.avatar, cg = s.createdGames, grp = s.groups, prev = s.previousNames;
+    const age = u.accountAgeDays;
+    const tone = (altIf, mainIf) => altIf ? 'alt' : mainIf ? 'main' : null;
+    const groups = [
+      ['Social', [
+        ['Friends', 'friends', n(s.friends), null, s.friends == null ? null : tone(s.friends < 5, s.friends >= 15)],
+        ['Followers', 'followers', n(s.followers), null, s.followers == null ? null : tone(s.followers === 0, s.followers >= 20)],
+        ['Following', 'following', n(s.following), null, s.following == null ? null : tone(s.following === 0, s.following >= 10)],
+        ['Groups', 'groups', grp ? n(grp.count) : '—', grp?.owned ? `owns ${n(grp.owned)} · ${grp.sample?.join(', ') ?? ''}` : grp?.sample?.join(', '),
+          grp ? tone(grp.count === 0, grp.count >= 3) : null],
+      ]],
+      ['Activity', [
+        ['Player badges', 'badge', pb ? n(pb.count) + (pb.truncated ? '+' : '') : 'n/a',
+          pb?.timing ? `${n(pb.timing.farmed)} in bursts · earned on ${n(pb.timing.days)} day${pb.timing.days === 1 ? '' : 's'}` : pb?.sample?.join(', '),
+          pb ? tone(real < 10, real >= 30) : null],
+        ['Roblox badges', 'award', s.robloxBadges ? s.robloxBadges.length : '—', s.robloxBadges?.join(', '),
+          s.robloxBadges ? tone(s.robloxBadges.length === 0, s.robloxBadges.length > 0) : null],
+        ['Favorites', 'star', plus(s.favorites), s.favorites?.sample?.join(', '),
+          s.favorites ? tone(s.favorites.count === 0, s.favorites.count >= 15) : null],
+        ['Created games', 'gamepad', cg ? n(cg.count) : '—', cg?.count ? `${n(cg.visits)} visits · ${cg.sample.join(', ')}` : '',
+          cg ? tone(false, cg.count > 0) : null],
+      ]],
+      ['Inventory and avatar', [
+        ['Limited items', 'gem', inv === false && !(col && col.count) ? 'private' : plus(col), col && col.count ? `RAP ${n(col.rap)}` : '',
+          col ? tone(inv && col.count === 0, col.count > 0) : null],
+        ['Paid wearables', 'shirt', inv === false ? 'private' : wear ? n(wear.paid) + (wear.truncated ? '+' : '') : '—',
+          wear ? `${n(wear.free)} free excluded` : '', wear ? tone(wear.count === 0 || wear.paid === 0, wear.paid >= 10) : null],
+        ['Avatar', 'user', av ? `${n(av.assetCount)} item${av.assetCount === 1 ? '' : 's'}` : '—', av?.type ? `${av.type} rig` : '',
+          av ? tone(av.assetCount <= 2, av.assetCount >= 6) : null],
+      ]],
+      ['Identity', [
+        ['Account age', 'calendar', age == null ? '—' : ageText(age), (u.created || '').slice(0, 10),
+          age == null ? null : tone(age < 365, age >= 365)],
+        ['Past names', 'tag', prev ? prev.length : '—', prev?.join(', '), prev ? tone(false, prev.length > 0) : null],
+        ['Status', 'activity', s.presence ? s.presence.status : '—', s.presence?.lastLocation || '', null],
+      ]],
     ];
+    const NA = new Set(['—', 'n/a', 'private']);
+    const statTile = ([k, icon, v, d, t]) => `
+      <div class="stat${t ? ` tone-${t}` : ''}${NA.has(String(v)) ? ' na' : ''}">
+        <div class="k">${ICON[icon] || ''}<span>${esc(k)}</span></div>
+        <div class="v">${esc(v)}</div>
+        ${d ? `<div class="d" title="${esc(d)}">${esc(d)}</div>` : ''}
+      </div>`;
+    const statsHtml = groups.map(([title, tiles]) => `
+      <section class="stat-group">
+        <h4>${esc(title)}</h4>
+        <div class="grid">${tiles.map(statTile).join('')}</div>
+      </section>`).join('');
     const cachedNote = !r.cached ? '' : unlocked
       ? ' · cached result · <button type="button" class="link" id="refresh">refresh</button>'
       : ' · cached result';
@@ -366,10 +422,11 @@
       <div class="card" id="deepCard" hidden></div>
 
       <div class="card">
-        <h3>Stats</h3>
-        <div class="grid">
-          ${stats.map(([k, v, d]) => `<div class="stat"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div>${d ? `<div class="d" title="${esc(d)}">${esc(d)}</div>` : ''}</div>`).join('')}
+        <div class="row spread" style="margin-bottom:14px">
+          <h3 style="margin:0">Stats</h3>
+          <span class="stat-key"><i class="alt"></i> leans alt <i class="main"></i> leans main</span>
         </div>
+        ${statsHtml}
       </div>
 
       <div class="card">
