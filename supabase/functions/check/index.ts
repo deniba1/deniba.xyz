@@ -310,6 +310,7 @@ async function collect(uid: number, username: string): Promise<Record<string, Re
         count: data.length,
         sample: data.slice(0, 6).map((g: Json) => g.group.name),
         owned: data.filter((g: Json) => g.role?.rank === 255).length,
+        ownedMembers: Math.max(0, ...data.filter((g: Json) => g.role?.rank === 255).map((g: Json) => g.group?.memberCount ?? 0)),
       };
     },
     createdGames: async () => {
@@ -346,7 +347,7 @@ async function collect(uid: number, username: string): Promise<Record<string, Re
       const kind = ({ 0: "Offline", 1: "Online", 2: "In game", 3: "In Studio" } as Record<number, string>)[
         p.userPresenceType
       ] ?? "Unknown";
-      return { status: kind, lastLocation: p.lastLocation ?? null };
+      return { status: kind, lastLocation: p.lastLocation ?? null, lastOnline: p.lastOnline ?? null };
     },
   };
 
@@ -429,6 +430,10 @@ function score(user: Json, d: Record<string, Result>) {
   const display: string = user.displayName ?? "";
   const created = user.created ? Date.parse(user.created) : NaN;
   const ageDays = Number.isNaN(created) ? null : Math.floor((Date.now() - created) / 86_400_000);
+  const daysSince = (iso: unknown): number | null => {
+    const t = parseDate(iso);
+    return Number.isNaN(t) ? null : Math.floor((Date.now() - t) / 86_400_000);
+  };
 
   // Account age
   if (ageDays !== null) {
@@ -469,7 +474,12 @@ function score(user: Json, d: Record<string, Result>) {
     if (groups.count === 0) sig(6, "No groups", "Not a member of any group.", "social");
     else if (groups.count >= 10) sig(-6, "Many groups", `Member of ${groups.count} groups.`, "social");
     else if (groups.count >= 3) sig(-3, "In a few groups", `Member of ${groups.count} groups.`, "social");
-    if (groups.owned) sig(-4, "Owns a group", `Owner of ${groups.owned} group(s).`, "social");
+    if (groups.owned) {
+      sig(-4, "Owns a group", `Owner of ${groups.owned} group(s).`, "social");
+      const members: number = groups.ownedMembers ?? 0;
+      if (members >= 1000) sig(-6, "Runs a group with a following", `Their largest group has ${fmt(members)} members.`, "social");
+      else if (members >= 100) sig(-4, "Runs a group with members", `Their largest group has ${fmt(members)} members.`, "social");
+    }
   }
 
   // Activity
@@ -504,6 +514,13 @@ function score(user: Json, d: Record<string, Result>) {
     if (timing && real >= 10 && timing.days >= 15) {
       sig(-4, "Badges earned over many days", `Badges were earned on ${timing.days} different days.`, "activity");
     }
+    const games: number = pb.games ?? 0;
+    if (games >= 10) sig(-4, "Badges from many games", `Badges come from ${games} different games.`, "activity");
+    else if (count >= 20 && games <= 2) sig(3, "Badges from one or two games", `${count}${more} badges, all from ${games} game(s).`, "activity");
+    const first = daysSince(pb.earliest);
+    if (first !== null && first >= 365 && real >= 10) {
+      sig(-3, "Long play history", `First badge earned ${Math.floor(first / 365)} year(s) ago.`, "activity");
+    }
   }
   const fav = get("favorites");
   if (fav) {
@@ -513,7 +530,8 @@ function score(user: Json, d: Record<string, Result>) {
   }
   const cg = get("createdGames");
   if (cg && cg.count > 0) {
-    sig(cg.visits >= 1000 ? -10 : -5, "Has created games", `${cg.count} public place(s), ${fmt(cg.visits)} visits.`, "activity");
+    const pts = cg.visits >= 100_000 ? -12 : cg.visits >= 1000 ? -10 : -5;
+    sig(pts, "Has created games", `${cg.count} public place(s), ${fmt(cg.visits)} visits.`, "activity");
   }
 
   // Inventory / avatar
@@ -537,6 +555,11 @@ function score(user: Json, d: Record<string, Result>) {
     else if (paid >= 40) sig(-6, "Large paid wardrobe", `${paid}${more} paid wearables (${free} free ignored).`, "inventory");
     else if (paid >= 10) sig(-3, "Decent paid wardrobe", `${paid} paid wearables (${free} free ignored).`, "inventory");
     else sig(2, "Few paid items", `${paid} paid wearable(s) (${free} free ignored).`, "inventory");
+    const held = daysSince(wear.oldest);
+    if (held !== null && wear.count >= 3) {
+      if (held >= 730) sig(-4, "Items collected over years", `Oldest item was picked up ${Math.floor(held / 365)} years ago.`, "inventory");
+      else if (held >= 180) sig(-2, "Items collected over months", `Oldest item was picked up ${Math.floor(held / 30)} months ago.`, "inventory");
+    }
   }
   const av = get("avatar");
   if (av) {
@@ -550,12 +573,37 @@ function score(user: Json, d: Record<string, Result>) {
   if (prev && prev.length) sig(-4, "Changed username before", `Previously: ${prev.slice(0, 4).join(", ")}.`, "identity");
   if (display && display.toLowerCase() === name.toLowerCase()) sig(2, "Display name never set", "Display name still matches the username.", "identity");
   const m = name.match(/(\d{3,})$/);
-  if (m) sig(4, "Username ends in digits", `Ends in ${m[1].length} digits, typical of auto-generated or bulk-made names.`, "identity");
+  if (m && m[1].length === 4 && Number(m[1]) >= 1990 && Number(m[1]) <= 2029) {
+    sig(2, "Username ends in a year", `Ends in ${m[1]}, which people add themselves far more often than scripts do.`, "identity");
+  } else if (m) sig(4, "Username ends in digits", `Ends in ${m[1].length} digits, typical of auto-generated or bulk-made names.`, "identity");
+  const letters = name.toLowerCase().replace(/[^a-z]/g, "");
+  if ((letters.length >= 7 && (!/[aeiouy]/.test(letters) || /[^aeiouy]{6,}/.test(letters))) || /^(?:[a-z]\d){4,}[a-z]?$/.test(name.toLowerCase())) {
+    sig(5, "Username looks generated", `'${name}' has the shape of a machine-made name rather than a chosen one.`, "identity");
+  }
   if (/(alt|alt\d|_alt|2nd|second|backup|spare|temp)/i.test(name)) sig(15, "Username says it's an alt", `'${name}' contains an alt-style keyword.`, "identity");
+  else if (display && display.toLowerCase() !== name.toLowerCase() && /\b(alt|backup|spare|2nd|second acc(ount)?)\b/i.test(display)) {
+    sig(8, "Display name says it's an alt", `'${display}' contains an alt-style keyword.`, "identity");
+  }
   const desc = (user.description ?? "").trim();
   if (!desc) sig(3, "Empty profile description", "No 'About' text.", "identity");
   else if (/\b(alt|alt account|main is|my main|main acc)\b/i.test(desc)) sig(20, "Description mentions an alt/main", "The profile text talks about a main or alt account.", "identity");
+  else if (/\b(banned|unbanned|permabanned|ban evasion|ban evading|evading a ban)\b/i.test(desc)) sig(8, "Description mentions a ban", "The profile text talks about being banned.", "identity");
+  else if (/\b(test(ing)? (acc|account)|dev (acc|account)|developer account)\b/i.test(desc)) sig(6, "Says it's a test account", "The profile text calls this a test or developer account.", "identity");
+  else if (/\b(sell(ing)? (acc|account)s?|accounts? for sale|buy(ing)? accounts?)\b/i.test(desc)) sig(6, "Mentions buying or selling accounts", "The profile text talks about account sales, which Roblox forbids.", "identity");
   else sig(-2, "Has a profile description", "Wrote something in 'About'.", "identity");
+
+  // Patterns across several figures
+  if (followers !== null && followers >= 100 && pb && pb.count === 0 && fav && fav.count === 0) {
+    sig(5, "Followers without any play", `${fmt(followers)} followers, yet no game badges and no favorites: the shape of bought or botted followers.`, "social");
+  }
+  if (following !== null && followers !== null && following >= 100 && followers <= 5) {
+    sig(4, "Follows many, followed by none", `Following ${fmt(following)} accounts with ${followers} follower(s), a follow-bot pattern.`, "social");
+  }
+  const pr = get("presence");
+  const idle = pr ? daysSince(pr.lastOnline) : null;
+  if (idle !== null && idle >= 365) {
+    sig(0, "Dormant account", `Last online about ${Math.floor(idle / 365)} year(s) ago. Informational: dormancy alone doesn't change the score, but an old account that wakes up behaving like a new one may have changed hands.`, "identity");
+  }
 
   let total = Math.max(0, Math.min(100, 35 + signals.reduce((s, x) => s + x.points, 0)));
   if (user.hasVerifiedBadge) total = Math.min(total, 10);

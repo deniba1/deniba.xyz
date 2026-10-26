@@ -148,19 +148,29 @@
       <li><strong>Account age.</strong> The strongest single signal. An account less than a week old gets 30 points
         added; one that has been around for three years or more has points taken off.</li>
       <li><strong>Friends, followers and groups.</strong> No friends, no followers and no groups all push toward “alt”.
-        A long friends list, a following, or owning a group pull the other way.</li>
+        A long friends list, a following, or owning a group pull the other way, and owning a group that has real
+        members pulls harder. Hundreds of followers on an account that has never played anything, or following
+        hundreds of accounts while nobody follows back, are bot patterns and count toward “alt”.</li>
       <li><strong>Badges.</strong> Official Roblox badges, and badges earned inside games, show that an account has
         actually been played. The checker also reads <em>when</em> each game badge was earned: ten or more within ten
         minutes is the mark of a “badge walk” game that hands them out for nothing, so those are set aside and only
-        badges earned at a normal pace count.</li>
+        badges earned at a normal pace count. Badges spread across many different games, and a first badge earned
+        years ago, both count toward “main”; dozens of badges that all come from one or two games count the other way.</li>
       <li><strong>Favorites and created games.</strong> Favorited games and published places with real visits point to a
-        main. The “username's Place” that Roblox creates automatically doesn't count.</li>
+        main, and a place with 100,000 or more visits counts most. The “username's Place” that Roblox creates
+        automatically doesn't count.</li>
       <li><strong>Inventory.</strong> Limited items and their resale value, plus clothing and accessories that cost
-        Robux. Free items are ignored, because any new account can pick them up in seconds.</li>
+        Robux. Free items are ignored, because any new account can pick them up in seconds. When the oldest item was
+        picked up matters too: items collected over months or years mean an account that has been used over time.</li>
       <li><strong>Avatar.</strong> A default or barely customised avatar is typical of an account made in a hurry.</li>
       <li><strong>Names and profile text.</strong> Usernames ending in a run of digits or containing words like “alt” or
-        “backup”, and descriptions that mention a main account. Past username changes count toward “main”.</li>
+        “backup”, and usernames with the shape of a machine-made name (no vowels, or letters and digits alternating).
+        A name ending in a year is treated more gently than a run of digits, because people add years themselves.
+        Display names with alt-style words, and descriptions that mention a main account, a ban, a test account, or
+        buying and selling accounts, all count toward “alt”. Past username changes count toward “main”.</li>
       <li><strong>Verified badge.</strong> Roblox-verified accounts are never scored above 10.</li>
+      <li><strong>Dormancy.</strong> An account last online over a year ago is flagged for information only. It
+        doesn't change the score, but an old account that wakes up behaving like a new one may have changed hands.</li>
     </ul>
   </section>
 
@@ -350,7 +360,7 @@
       ]],
       ['Activity', [
         ['Player badges', 'badge', pb ? n(pb.count) + (pb.truncated ? '+' : '') : 'n/a',
-          pb?.timing ? `${n(pb.timing.farmed)} in bursts · earned on ${n(pb.timing.days)} day${pb.timing.days === 1 ? '' : 's'}` : pb?.sample?.join(', '),
+          pb?.timing ? `${n(pb.timing.farmed)} in bursts · earned on ${n(pb.timing.days)} day${pb.timing.days === 1 ? '' : 's'}${pb.games ? ` · from ${n(pb.games)} game${pb.games === 1 ? '' : 's'}` : ''}` : pb?.sample?.join(', '),
           pb ? tone(real < 10, real >= 30) : null],
         ['Roblox badges', 'award', s.robloxBadges ? s.robloxBadges.length : '—', s.robloxBadges?.join(', '),
           s.robloxBadges ? tone(s.robloxBadges.length === 0, s.robloxBadges.length > 0) : null],
@@ -371,7 +381,8 @@
         ['Account age', 'calendar', age == null ? '—' : ageText(age), (u.created || '').slice(0, 10),
           age == null ? null : tone(age < 365, age >= 365)],
         ['Past names', 'tag', prev ? prev.length : '—', prev?.join(', '), prev ? tone(false, prev.length > 0) : null],
-        ['Status', 'activity', s.presence ? s.presence.status : '—', s.presence?.lastLocation || '', null],
+        ['Status', 'activity', s.presence ? s.presence.status : '—',
+          s.presence?.lastLocation || (s.presence?.lastOnline ? `last online ${s.presence.lastOnline.slice(0, 10)}` : ''), null],
       ]],
     ];
     const NA = new Set(['—', 'n/a', 'private']);

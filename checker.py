@@ -233,7 +233,8 @@ def collect(uid, username=""):
         data = roblox(f"https://groups.roblox.com/v1/users/{uid}/groups/roles").get("data") or []
         return {"count": len(data),
                 "sample": [g["group"]["name"] for g in data[:6]],
-                "owned": sum(1 for g in data if g["role"].get("rank") == 255)}
+                "owned": sum(1 for g in data if g["role"].get("rank") == 255),
+                "ownedMembers": max([g["group"].get("memberCount") or 0 for g in data if g["role"].get("rank") == 255], default=0)}
 
     def created_games():
         items, truncated = page_all(
@@ -261,7 +262,7 @@ def collect(uid, username=""):
         p = (r.get("userPresences") or [{}])[0]
         kind = {0: "Offline", 1: "Online", 2: "In game", 3: "In Studio"}.get(
             p.get("userPresenceType"), "Unknown")
-        return {"status": kind, "lastLocation": p.get("lastLocation")}
+        return {"status": kind, "lastLocation": p.get("lastLocation"), "lastOnline": p.get("lastOnline")}
 
     tasks = {
         "previousNames": name_history,
@@ -363,6 +364,10 @@ def score(user, d):
     created = parse_date(user.get("created"))
     age_days = (now - created).days if created else None
 
+    def days_since(iso):
+        t = parse_date(iso)
+        return (now - t).days if t else None
+
     # Account age -----------------------------------------------------------
     if age_days is not None:
         if age_days < 7:
@@ -424,6 +429,11 @@ def score(user, d):
             sig(-3, "In a few groups", f"Member of {groups['count']} groups.", "social")
         if groups.get("owned"):
             sig(-4, "Owns a group", f"Owner of {groups['owned']} group(s).", "social")
+            members = groups.get("ownedMembers") or 0
+            if members >= 1000:
+                sig(-6, "Runs a group with a following", f"Their largest group has {members:,} members.", "social")
+            elif members >= 100:
+                sig(-4, "Runs a group with members", f"Their largest group has {members:,} members.", "social")
 
     # Activity ----------------------------------------------------------------
     rb = get("robloxBadges")
@@ -459,6 +469,14 @@ def score(user, d):
                 f"the pattern of a badge-walk game (up to {timing['biggestBurst']} in one burst).", "activity")
         if timing and real >= 10 and timing["days"] >= 15:
             sig(-4, "Badges earned over many days", f"Badges were earned on {timing['days']} different days.", "activity")
+        games = pb.get("games") or 0
+        if games >= 10:
+            sig(-4, "Badges from many games", f"Badges come from {games} different games.", "activity")
+        elif count >= 20 and games <= 2:
+            sig(3, "Badges from one or two games", f"{count}{more} badges, all from {games} game(s).", "activity")
+        first = days_since(pb.get("earliest"))
+        if first is not None and first >= 365 and real >= 10:
+            sig(-3, "Long play history", f"First badge earned {first // 365} year(s) ago.", "activity")
 
     fav = get("favorites")
     if fav:
@@ -471,7 +489,7 @@ def score(user, d):
 
     cg = get("createdGames")
     if cg and cg["count"] > 0:
-        pts = -10 if cg["visits"] >= 1000 else -5
+        pts = -12 if cg["visits"] >= 100_000 else -10 if cg["visits"] >= 1000 else -5
         sig(pts, "Has created games", f"{cg['count']} public place(s), {cg['visits']:,} visits.", "activity")
 
     # Inventory / avatar -------------------------------------------------------
@@ -500,6 +518,12 @@ def score(user, d):
             sig(-3, "Decent paid wardrobe", f"{paid} paid wearables ({free} free ignored).", "inventory")
         else:
             sig(2, "Few paid items", f"{paid} paid wearable(s) ({free} free ignored).", "inventory")
+        held = days_since(wear.get("oldest"))
+        if held is not None and wear["count"] >= 3:
+            if held >= 730:
+                sig(-4, "Items collected over years", f"Oldest item was picked up {held // 365} years ago.", "inventory")
+            elif held >= 180:
+                sig(-2, "Items collected over months", f"Oldest item was picked up {held // 30} months ago.", "inventory")
 
     av = get("avatar")
     if av:
@@ -517,17 +541,41 @@ def score(user, d):
     if display and display.lower() == name.lower():
         sig(2, "Display name never set", "Display name still matches the username.", "identity")
     m = re.search(r"(\d{3,})$", name)
-    if m:
+    if m and len(m.group(1)) == 4 and 1990 <= int(m.group(1)) <= 2029:
+        sig(2, "Username ends in a year", f"Ends in {m.group(1)}, which people add themselves far more often than scripts do.", "identity")
+    elif m:
         sig(4, "Username ends in digits", f"Ends in {len(m.group(1))} digits, typical of auto-generated or bulk-made names.", "identity")
+    letters = re.sub(r"[^a-z]", "", name.lower())
+    if (len(letters) >= 7 and (not re.search(r"[aeiouy]", letters) or re.search(r"[^aeiouy]{6,}", letters))) \
+            or re.fullmatch(r"(?:[a-z]\d){4,}[a-z]?", name.lower()):
+        sig(5, "Username looks generated", f"'{name}' has the shape of a machine-made name rather than a chosen one.", "identity")
     if re.search(r"(alt|alt\d|_alt|2nd|second|backup|spare|temp)", name, re.I):
         sig(15, "Username says it's an alt", f"'{name}' contains an alt-style keyword.", "identity")
+    elif display and display.lower() != name.lower() and re.search(r"\b(alt|backup|spare|2nd|second acc(ount)?)\b", display, re.I):
+        sig(8, "Display name says it's an alt", f"'{display}' contains an alt-style keyword.", "identity")
     desc = (user.get("description") or "").strip()
     if not desc:
         sig(3, "Empty profile description", "No 'About' text.", "identity")
     elif re.search(r"\b(alt|alt account|main is|my main|main acc)\b", desc, re.I):
         sig(20, "Description mentions an alt/main", "The profile text talks about a main or alt account.", "identity")
+    elif re.search(r"\b(banned|unbanned|permabanned|ban evasion|ban evading|evading a ban)\b", desc, re.I):
+        sig(8, "Description mentions a ban", "The profile text talks about being banned.", "identity")
+    elif re.search(r"\b(test(ing)? (acc|account)|dev (acc|account)|developer account)\b", desc, re.I):
+        sig(6, "Says it's a test account", "The profile text calls this a test or developer account.", "identity")
+    elif re.search(r"\b(sell(ing)? (acc|account)s?|accounts? for sale|buy(ing)? accounts?)\b", desc, re.I):
+        sig(6, "Mentions buying or selling accounts", "The profile text talks about account sales, which Roblox forbids.", "identity")
     else:
         sig(-2, "Has a profile description", "Wrote something in 'About'.", "identity")
+
+    # Patterns across several figures --------------------------------------------
+    if followers is not None and followers >= 100 and pb and pb["count"] == 0 and fav and fav["count"] == 0:
+        sig(5, "Followers without any play", f"{followers:,} followers, yet no game badges and no favorites: the shape of bought or botted followers.", "social")
+    if following is not None and followers is not None and following >= 100 and followers <= 5:
+        sig(4, "Follows many, followed by none", f"Following {following:,} accounts with {followers} follower(s), a follow-bot pattern.", "social")
+    pr = get("presence")
+    idle = days_since(pr.get("lastOnline")) if pr else None
+    if idle is not None and idle >= 365:
+        sig(0, "Dormant account", f"Last online about {idle // 365} year(s) ago. Informational: dormancy alone doesn't change the score, but an old account that wakes up behaving like a new one may have changed hands.", "identity")
 
     total = max(0, min(100, 35 + sum(s["points"] for s in signals)))
     if user.get("hasVerifiedBadge"):
