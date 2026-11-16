@@ -183,6 +183,7 @@
 
   function setPlaying(v) {
     playing = v;
+    if (v) root.classList.remove("is-waiting");
     root.classList.toggle("is-playing", v);
     ui.play.setAttribute("aria-label", v ? "pause" : "play");
     ui.play.title = v ? "pause" : "play";
@@ -272,7 +273,22 @@
   }, 250);
 
   /* ---------- controls ---------- */
-  ui.play.addEventListener("click", () => (playing || (wantPlay && engine === "yt") ? pause() : play()));
+  ui.play.addEventListener("click", () => (playing ? pause() : play()));
+
+  /* ---------- autoplay ----------
+     Browsers refuse to start sound before the visitor has interacted with the
+     page (Chrome and Edge make an exception for sites someone plays media on
+     often). So: ask to play as soon as the first song is ready, and if that is
+     refused, start on the first click, tap or key press anywhere. Presses on
+     the dock itself are left to its own buttons. */
+  const GESTURES = ["click", "keydown", "touchend"];
+  function onFirstGesture(e) {
+    GESTURES.forEach((g) => document.removeEventListener(g, onFirstGesture, true));
+    if (root.contains(e.target) || playing || !wantPlay) return;
+    play();
+  }
+  GESTURES.forEach((g) => document.addEventListener(g, onFirstGesture, true));
+  setTimeout(() => { if (wantPlay && !playing) root.classList.add("is-waiting"); }, 3500);
   ui.next.addEventListener("click", () => skip(1));
   ui.prev.addEventListener("click", () => skip(-1));
   ui.now.addEventListener("click", () => root.classList.toggle("is-open"));
@@ -341,7 +357,8 @@
       root.hidden = false;
       renderToggles();
       applyVolume();
-      load(false);
+      wantPlay = true;      // autoplay; see the autoplay block above
+      load(true);
       return;
     }
     // Songs added or removed since the page opened: keep the current song,

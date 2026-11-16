@@ -355,3 +355,10 @@ a { color: inherit; text-decoration: none; }
   .player:not(.is-open) .player__inner { opacity: 0; padding: 0 16px; }
 }
 @media (max-width: 560px) { .player { bottom: 10px; } }
+
+/* autoplay was blocked: pulse the play button until the first interaction */
+.player.is-waiting .pbtn--play { animation: waitPulse 1.8s ease-out infinite; }
+@keyframes waitPulse {
+  0% { box-shadow: 0 0 0 0 rgba(185,140,255,.6), 0 0 22px -4px var(--a-glow); }
+  100% { box-shadow: 0 0 0 14px rgba(185,140,255,0), 0 0 22px -4px var(--a-glow); }
+}
