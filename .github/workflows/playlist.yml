@@ -1,0 +1,39 @@
+name: Refresh Spotify playlist
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"   # GitHub may run scheduled jobs a few minutes late
+  workflow_dispatch:          # "Run workflow" button in the Actions tab, for an immediate refresh
+
+permissions:
+  contents: write
+
+concurrency:
+  group: playlist
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch playlist
+        run: python scripts/update_playlist.py 5vhjVUrxrh7W950hW9vi6b docs/assets/playlist.json
+
+      - name: Commit if changed
+        run: |
+          if [ -z "$(git status --porcelain -- docs/assets/playlist.json)" ]; then
+            echo "playlist unchanged"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/assets/playlist.json
+          git commit -m "Update playlist"
+          git push
