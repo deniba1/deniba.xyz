@@ -67,6 +67,29 @@
   tick();
   setInterval(tick, 10_000);
 
+  /* ---------- where i probably am (schedule in config.js, in my timezone) ---------- */
+  const partsFmt = (() => {
+    const o = { weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" };
+    try { return new Intl.DateTimeFormat("en-US", { ...o, timeZone: P.timezone || undefined }); }
+    catch { return new Intl.DateTimeFormat("en-US", o); }
+  })();
+  const DAYS = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const mins = (hhmm) => { const [h, m] = hhmm.split(":").map(Number); return h * 60 + m; };
+  let whereNow = "";
+  function where() {
+    const parts = Object.fromEntries(partsFmt.formatToParts(new Date()).map((p) => [p.type, p.value]));
+    const day = DAYS[parts.weekday], now = (+parts.hour % 24) * 60 + +parts.minute;
+    const hit = (P.schedule || []).find((e) =>
+      (!e.days || e.days.includes(day)) && now >= mins(e.from) && now < mins(e.to));
+    const pick = hit || P.scheduleDefault || { label: "probably online", icon: "online" };
+    if (pick.label === whereNow) return;
+    whereNow = pick.label;
+    $("whereText").textContent = pick.label;
+    $("whereIcon").className = `icon__img icon__img--${pick.icon}`;
+  }
+  where();
+  setInterval(where, 30_000);
+
   /* ---------- tokens wasted (a joke, and labelled as one) ---------- */
   const T0 = Date.UTC(2026, 7, 13), RATE = 23;          // since the github account opened, 23 tokens a second
   const tokensEl = $("tokens");

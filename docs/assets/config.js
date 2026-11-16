@@ -6,6 +6,15 @@ window.PROFILE = {
   location: "earth",
   timezone: "America/Los_Angeles",   // the clock on the card shows your time in this zone (IANA name)
 
+  // "right now" in about.txt: where you probably are, by your local time.
+  // The first matching entry wins; days are 0 = sunday ... 6 = saturday (omit for every day).
+  // icon: sleep, school or online
+  schedule: [
+    { from: "00:00", to: "08:30", label: "probably sleeping", icon: "sleep" },
+    { from: "08:30", to: "16:00", days: [1, 2, 3, 4, 5], label: "probably at school", icon: "school" },
+  ],
+  scheduleDefault: { label: "probably online", icon: "online" },
+
   // Avatar: leave empty to use your Discord avatar (when discordId is set),
   // falling back to a monogram. Or point it at an image, e.g. "images/avatar.webp".
   avatar: "",
