@@ -8,23 +8,23 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/style.css?v=3">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/style.css?v=4">
 <style>
-  .lost { position: relative; z-index: 2; min-height: 100dvh; display: grid; place-items: center; padding: 24px; }
-  .lost .card { position: relative; top: 0; max-width: 380px; width: 100%; }
-  .lost h1 { font-size: 4rem; letter-spacing: -0.05em; background: linear-gradient(135deg, var(--a1), var(--a2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .lost p { color: var(--muted); margin: 6px 0 22px; }
-  .lost .social { justify-content: center; }
+  .lost { position: relative; z-index: 1; min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; max-width: 1120px; margin: 0 auto; padding: 28px; }
+  .lost h1 { font-family: var(--serif); font-style: italic; font-weight: 400; font-size: clamp(120px, 26vw, 320px); line-height: .8; letter-spacing: -0.04em; }
+  .lost h1 span { color: var(--a1); }
+  .lost p { font-size: clamp(1.1rem, 2.2vw, 1.45rem); color: var(--muted); margin: 26px 0 30px; }
+  .lost a { font-family: var(--mono); font-size: .8rem; color: var(--fg); border-bottom: 1px solid var(--a1); padding-bottom: 3px; align-self: flex-start; }
+  .lost a:hover { color: var(--a1); }
 </style>
 </head>
 <body>
+<div class="bg" aria-hidden="true"><div class="bg__glow"></div></div>
 <main class="lost">
-  <section class="card glass">
-    <h1>404</h1>
-    <p>nothing out here but stars.</p>
-    <a class="social" href="/"><span class="social__label" style="flex:0">back home</span><span class="social__arrow">→</span></a>
-  </section>
+  <h1>4<span>0</span>4</h1>
+  <p>this page got lost. probably wasted a few tokens looking for it.</p>
+  <a href="/">← back home</a>
 </main>
 </body>
 </html>

@@ -37,7 +37,7 @@
     catch { toast(text); }
   }
 
-  /* ---------- profile basics ---------- */
+  /* ---------- basics ---------- */
   const name = P.name || "deni";
   $("name").textContent = name;
   $("avatarMono").textContent = name.charAt(0).toLowerCase();
@@ -56,112 +56,93 @@
 
   /* ---------- clock ---------- */
   let fmt;
-  try {
-    fmt = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: P.timezone || undefined });
-  } catch {
-    fmt = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" });
-  }
+  try { fmt = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: P.timezone || undefined }); }
+  catch { fmt = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }); }
   const tick = () => { $("clock").textContent = fmt.format(new Date()).toLowerCase(); };
   tick();
   setInterval(tick, 10_000);
 
-  /* ---------- socials ---------- */
+  /* ---------- tokens wasted (a joke, and labelled as one) ---------- */
+  const T0 = Date.UTC(2026, 7, 13), RATE = 23;          // since the github account opened, 23 tokens a second
+  const tokensEl = $("tokens");
+  tokensEl.title = "an estimate. a generous one.";
+  const nf = new Intl.NumberFormat("en-US");
+  const tokens = () => { tokensEl.textContent = nf.format(Math.floor((Date.now() - T0) / 1000 * RATE)); };
+  tokens();
+  setInterval(tokens, reduceMotion ? 5000 : 120);
+
+  /* ---------- links ---------- */
   const socials = $("socials");
   const links = [];
-  if (P.github) links.push({ label: "GitHub", icon: "github", url: `https://github.com/${P.github}` });
-  if (P.discordId) links.push({ label: "Discord", icon: "discord", url: `https://discord.com/users/${P.discordId}`, copy: P.discordUsername });
-  (P.links || []).forEach((l) => { if (l && l.url) links.push(l); });
-  if (P.email) links.push({ label: "Email", icon: "email", email: P.email });
+  if (P.github) links.push({ label: "github", icon: "github", url: `https://github.com/${P.github}`, sub: P.github });
+  if (P.discordId) links.push({ label: "discord", icon: "discord", url: `https://discord.com/users/${P.discordId}`, sub: P.discordUsername || "" });
+  (P.links || []).forEach((l) => { if (l && l.url) links.push({ ...l, label: l.label.toLowerCase() }); });
+  if (P.email) links.push({ label: "email", icon: "email", email: P.email, sub: P.email });
 
-  links.forEach((l, i) => {
+  links.forEach((l) => {
     let n;
     if (l.email) {
-      n = el("button", "social");
+      n = el("button", "link");
       n.type = "button";
       n.title = "click to copy";
       n.addEventListener("click", () => copy(l.email, "email"));
     } else {
-      n = el("a", "social");
-      n.href = l.url;
-      n.target = "_blank";
-      n.rel = "noopener";
+      n = el("a", "link");
+      n.href = l.url; n.target = "_blank"; n.rel = "noopener";
     }
-    n.style.setProperty("--i", i);
     n.innerHTML = svg(l.icon);
-    n.append(el("span", "social__label", l.email ? l.email : l.label), el("span", "social__arrow", l.email ? "⧉" : "↗"));
+    const txt = el("span", "link__txt");
+    txt.append(el("span", "link__label", l.label));
+    if (l.sub) txt.append(el("span", "link__sub", l.sub));
+    n.append(txt, el("span", "link__arrow", l.email ? "copy" : "↗"));
     socials.append(n);
   });
 
-  /* ---------- projects ---------- */
-  function spotlight(card) {
-    card.addEventListener("pointermove", (e) => {
-      const r = card.getBoundingClientRect();
-      card.style.setProperty("--px", `${e.clientX - r.left}px`);
-      card.style.setProperty("--py", `${e.clientY - r.top}px`);
-    });
+  /* ---------- work index ---------- */
+  function row(list, i, { name, desc, url, tags, status, meta }) {
+    const li = el("li");
+    const a = el("a", "work__row");
+    a.href = url;
+    if (/^https?:/.test(url)) { a.target = "_blank"; a.rel = "noopener"; }
+    a.append(el("span", "work__num", String(i + 1).padStart(2, "0")));
+    const main = el("span", "work__main");
+    const top = el("span", "work__top");
+    top.append(el("span", "work__name", name));
+    if (status) top.append(el("span", `work__status work__status--${status}`, status));
+    main.append(top);
+    if (desc) main.append(el("span", "work__desc", desc));
+    a.append(main);
+    const side = el("span", "work__side");
+    (tags || []).forEach((t) => side.append(el("span", "work__tag", t)));
+    if (meta) side.append(el("span", "work__tag", meta));
+    a.append(side, el("span", "work__arrow", "↗"));
+    li.append(a);
+    list.append(li);
   }
 
-  const projects = $("projects");
-  (P.projects || []).forEach((p, i) => {
-    const a = el("a", "project glass");
-    a.href = p.url;
-    if (/^https?:/.test(p.url)) { a.target = "_blank"; a.rel = "noopener"; }
-    a.style.setProperty("--i", i);
-    const top = el("div", "project__top");
-    top.append(el("span", "project__name", p.name));
-    if (p.status) top.append(el("span", `project__status project__status--${p.status}`, p.status));
-    a.append(top, el("p", "project__desc", p.desc || ""));
-    if (p.tags && p.tags.length) {
-      const tags = el("div", "project__tags");
-      p.tags.forEach((t) => tags.append(el("span", null, t)));
-      a.append(tags);
-    }
-    const link = el("span", "project__link", p.linkText || p.url.replace(/^https?:\/\//, ""));
-    link.append(el("span", "project__arrow", "↗"));
-    a.append(link);
-    spotlight(a);
-    projects.append(a);
-  });
+  const projects = P.projects || [];
+  projects.forEach((p, i) => row($("projects"), i, p));
+  $("projectCount").textContent = projects.length;
 
   /* ---------- stack ---------- */
   const stack = $("stack");
-  (P.stack || []).forEach((s, i) => {
-    const li = el("li", null, s);
-    li.style.setProperty("--i", i);
-    stack.append(li);
-  });
+  (P.stack || []).forEach((s) => stack.append(el("li", null, s)));
 
   /* ---------- github ---------- */
   if (P.github) {
-    const shown = new Set((P.projects || []).map((p) => (p.url || "").toLowerCase()));
+    const shown = (P.projects || []).map((p) => (p.url || "").toLowerCase());
     fetch(`https://api.github.com/users/${P.github}/repos?per_page=100&sort=pushed`)
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
       .then((repos) => {
         $("repoCount").textContent = repos.length;
         $("repoItem").hidden = false;
-        const extra = repos.filter((r) => !r.fork && !r.archived &&
-          ![...shown].some((u) => u.startsWith(r.html_url.toLowerCase())));
+        const extra = repos.filter((r) => !r.fork && !r.archived && !shown.some((u) => u.startsWith(r.html_url.toLowerCase())));
         if (!extra.length) return;
-        const grid = $("repos");
-        extra.slice(0, 6).forEach((r, i) => {
-          const a = el("a", "project glass");
-          a.href = r.html_url; a.target = "_blank"; a.rel = "noopener";
-          a.style.setProperty("--i", i);
-          const top = el("div", "project__top");
-          top.append(el("span", "project__name", r.name));
-          a.append(top);
-          if (r.description) a.append(el("p", "project__desc", r.description));
-          const stats = el("div", "repo__stats");
-          if (r.language) stats.append(el("span", "repo__lang", r.language.toLowerCase()));
-          if (r.stargazers_count) stats.append(el("span", null, `★ ${r.stargazers_count}`));
-          const link = el("span", "project__link", `github.com/${P.github}/${r.name}`);
-          link.append(el("span", "project__arrow", "↗"));
-          a.append(stats, link);
-          spotlight(a);
-          grid.append(a);
-        });
+        extra.slice(0, 6).forEach((r, i) => row($("repos"), i, {
+          name: r.name, desc: r.description || "", url: r.html_url,
+          tags: r.language ? [r.language.toLowerCase()] : [], meta: r.stargazers_count ? `★ ${r.stargazers_count}` : "",
+        }));
         $("reposBlock").hidden = false;
-        $("stackNum").textContent = "03";
       })
       .catch(() => {});
   }
@@ -173,7 +154,7 @@
   };
   const elapsedText = (start) => {
     const m = Math.floor((Date.now() - start) / 60000);
-    return m < 60 ? `${m}m elapsed` : `${Math.floor(m / 60)}h ${m % 60}m elapsed`;
+    return m < 60 ? `${m}m in` : `${Math.floor(m / 60)}h ${m % 60}m in`;
   };
   function assetUrl(act, key) {
     const img = act.assets && act.assets[key];
@@ -188,11 +169,14 @@
     const status = d.discord_status || "offline";
     const labels = { online: "online", idle: "idle", dnd: "do not disturb", offline: "offline" };
     const custom = (d.activities || []).find((a) => a.type === 4);
+
+    $("statusDot").dataset.status = status;
+    $("barStatusText").textContent = labels[status];
+    $("barStatus").hidden = false;
+
     const presence = $("presence");
     presence.dataset.status = status;
-    $("statusDot").dataset.status = status;
-    $("statusDot").hidden = false;
-    let text = labels[status];
+    let text = `${labels[status]} on discord`;
     if (custom && (custom.state || custom.emoji)) {
       text = [custom.emoji && !custom.emoji.id ? custom.emoji.name : "", custom.state || ""].join(" ").trim();
     }
@@ -207,13 +191,12 @@
     }
 
     clearInterval(progressTimer);
-    const box = $("activity");
-    const art = $("activityArt");
-    const bar = $("activityBar"), times = $("activityTimes");
+    const box = $("activity"), art = $("activityArt"), bar = $("activityBar"), times = $("activityTimes");
+    const idle = $("nowIdle");
 
     if (d.listening_to_spotify && d.spotify) {
       const s = d.spotify;
-      $("activityKind").textContent = "listening to spotify";
+      $("activityKind").textContent = "listening on spotify";
       $("activityTitle").textContent = s.song;
       $("activitySub").textContent = s.artist ? s.artist.replace(/;/g, ",") : "";
       art.src = s.album_art_url || "";
@@ -228,12 +211,12 @@
       };
       step();
       progressTimer = setInterval(step, 1000);
-      box.hidden = false;
+      box.hidden = false; idle.hidden = true;
       return;
     }
 
     const act = (d.activities || []).find((a) => a.type !== 4 && a.name !== "Spotify");
-    if (!act) { box.hidden = true; return; }
+    if (!act) { box.hidden = true; idle.hidden = false; return; }
     const kinds = { 0: "playing", 1: "streaming", 2: "listening to", 3: "watching", 5: "competing in" };
     $("activityKind").textContent = `${kinds[act.type] || "playing"} ${act.name}`.toLowerCase();
     $("activityTitle").textContent = act.details || act.name;
@@ -245,7 +228,7 @@
     progressTimer = setInterval(sub, 30_000);
     art.src = assetUrl(act, "large_image");
     bar.hidden = times.hidden = true;
-    box.hidden = false;
+    box.hidden = false; idle.hidden = true;
   }
 
   if (P.discordId) {
@@ -257,78 +240,14 @@
     setInterval(load, 20_000);
   }
 
-  /* ---------- pointer effects ---------- */
-  const card = $("card");
-  const fine = matchMedia("(pointer: fine)").matches;
-  if (fine && !reduceMotion) {
-    addEventListener("pointermove", (e) => {
-      document.body.style.setProperty("--mx", `${e.clientX}px`);
-      document.body.style.setProperty("--my", `${e.clientY}px`);
-    }, { passive: true });
-    card.addEventListener("pointermove", (e) => {
-      const r = card.getBoundingClientRect();
-      const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
-      card.style.setProperty("--ry", `${x * 8}deg`);
-      card.style.setProperty("--rx", `${-y * 8}deg`);
-      card.style.setProperty("--edge", `${130 + x * 90}deg`);
-    });
-    card.addEventListener("pointerleave", () => {
-      card.style.setProperty("--rx", "0deg");
-      card.style.setProperty("--ry", "0deg");
-    });
+  /* ---------- reveal on scroll ---------- */
+  const reveal = document.querySelectorAll(".hero, .tile, .section, .foot");
+  if (reduceMotion || !("IntersectionObserver" in window)) {
+    reveal.forEach((n) => n.classList.add("is-in"));
+  } else {
+    const io = new IntersectionObserver((entries) => entries.forEach((e) => {
+      if (e.isIntersecting) { e.target.classList.add("is-in"); io.unobserve(e.target); }
+    }), { rootMargin: "0px 0px -8% 0px" });
+    reveal.forEach((n, i) => { n.style.setProperty("--d", `${Math.min(i, 5) * 70}ms`); io.observe(n); });
   }
-
-  /* ---------- star field ---------- */
-  const cv = $("sky");
-  const ctx = cv.getContext("2d");
-  let W, H, DPR, stars = [], shooting = null;
-  let mx = 0, my = 0, tx = 0, ty = 0;
-
-  function resize() {
-    DPR = Math.min(devicePixelRatio || 1, 2);
-    W = innerWidth; H = innerHeight;
-    cv.width = W * DPR; cv.height = H * DPR;
-    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-    const count = Math.round(Math.min(260, (W * H) / 6500));
-    stars = Array.from({ length: count }, () => ({
-      x: Math.random() * W, y: Math.random() * H,
-      z: Math.random() * 0.9 + 0.1,               // depth: bigger, brighter, more parallax when close
-      tw: Math.random() * Math.PI * 2, ts: 0.6 + Math.random() * 1.6,
-      tint: Math.random() < 0.12,
-    }));
-  }
-  resize();
-  addEventListener("resize", resize);
-  if (fine) addEventListener("pointermove", (e) => { tx = e.clientX / W - 0.5; ty = e.clientY / H - 0.5; }, { passive: true });
-
-  function frame(t) {
-    ctx.clearRect(0, 0, W, H);
-    mx += (tx - mx) * 0.05; my += (ty - my) * 0.05;
-    const time = t / 1000;
-    for (const s of stars) {
-      if (!reduceMotion) { s.y -= s.z * 0.06; if (s.y < -4) { s.y = H + 4; s.x = Math.random() * W; } }
-      const x = s.x - mx * 40 * s.z, y = s.y - my * 40 * s.z;
-      const a = (0.25 + 0.75 * s.z) * (0.65 + 0.35 * Math.sin(time * s.ts + s.tw));
-      ctx.fillStyle = s.tint ? `rgba(185,140,255,${a})` : `rgba(238,234,245,${a})`;
-      const r = s.z * 1.35;
-      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
-    }
-    if (!reduceMotion) {
-      if (!shooting && Math.random() < 0.0025) {
-        shooting = { x: Math.random() * W * 0.7 + W * 0.3, y: Math.random() * H * 0.4, vx: -(6 + Math.random() * 4), vy: 2.2 + Math.random() * 1.5, life: 1 };
-      }
-      if (shooting) {
-        const s = shooting;
-        const g = ctx.createLinearGradient(s.x, s.y, s.x - s.vx * 14, s.y - s.vy * 14);
-        g.addColorStop(0, `rgba(230,215,255,${s.life})`);
-        g.addColorStop(1, "rgba(230,215,255,0)");
-        ctx.strokeStyle = g; ctx.lineWidth = 1.4;
-        ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - s.vx * 14, s.y - s.vy * 14); ctx.stroke();
-        s.x += s.vx; s.y += s.vy; s.life -= 0.012;
-        if (s.life <= 0 || s.x < -200 || s.y > H + 200) shooting = null;
-      }
-    }
-    requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
 })();

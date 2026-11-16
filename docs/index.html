@@ -4,91 +4,104 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>deni</title>
-<meta name="description" content="deni: professional vibe coder. projects, links and what i'm up to.">
-<meta name="theme-color" content="#000000">
+<meta name="description" content="deni: wasting tokens on useless things. projects, links and what i'm up to.">
+<meta name="theme-color" content="#0a0910">
 <link rel="canonical" href="https://deniba.xyz/">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="deni">
 <meta property="og:title" content="deni">
-<meta property="og:description" content="projects, links and what i'm up to.">
+<meta property="og:description" content="wasting tokens on useless things.">
 <meta property="og:url" content="https://deniba.xyz/">
 <meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=3">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css?v=4">
 </head>
 <body>
-<canvas id="sky" class="sky" aria-hidden="true"></canvas>
-<div class="glow" aria-hidden="true"></div>
+<div class="bg" aria-hidden="true"><div class="bg__glow"></div></div>
 
-<main class="page">
-  <section class="card glass" id="card" aria-label="profile">
-    <div class="card__edge" aria-hidden="true"></div>
+<header class="bar">
+  <a class="bar__mark" href="/">✦ deni<span>.xyz</span></a>
+  <div class="bar__right">
+    <span class="bar__item" id="barStatus" hidden><span class="dot" id="statusDot" data-status="offline"></span><span id="barStatusText">offline</span></span>
+    <span class="bar__item"><span class="bar__label">la</span> <span id="clock">--:--</span></span>
+  </div>
+</header>
 
-    <div class="avatar" id="avatar">
-      <img id="avatarImg" alt="" hidden>
-      <span class="avatar__mono" id="avatarMono">d</span>
-      <span class="avatar__status" id="statusDot" data-status="offline" hidden></span>
-    </div>
-
-    <h1 class="name"><span id="name">deni</span> <span class="name__mark" title="that's me">✦</span></h1>
-    <p class="handle" id="handle">@deniba1</p>
-    <p class="bio" id="bio"></p>
-
-    <div class="presence" id="presence" data-status="offline" hidden>
-      <span class="presence__dot" aria-hidden="true"></span>
-      <span class="presence__text" id="presenceText">offline</span>
-    </div>
-
-    <div class="activity" id="activity" hidden>
-      <img class="activity__art" id="activityArt" alt="">
-      <div class="activity__info">
-        <span class="activity__kind" id="activityKind">listening to spotify</span>
-        <span class="activity__title" id="activityTitle"></span>
-        <span class="activity__sub" id="activitySub"></span>
-        <div class="activity__bar" id="activityBar" hidden><span id="activityFill"></span></div>
-        <div class="activity__times" id="activityTimes" hidden><span id="activityElapsed">0:00</span><span id="activityTotal">0:00</span></div>
+<main class="wrap">
+  <section class="hero">
+    <h1 class="hero__name"><span id="name">deni</span><span class="hero__mark" aria-hidden="true">✦</span></h1>
+    <div class="hero__side">
+      <div class="avatar" id="avatar">
+        <img id="avatarImg" alt="" hidden>
+        <span class="avatar__mono" id="avatarMono">d</span>
+      </div>
+      <div>
+        <p class="hero__bio" id="bio"></p>
+        <p class="hero__handle"><span id="handle">@deniba1</span> · <span id="location">earth</span></p>
       </div>
     </div>
-
-    <dl class="meta">
-      <div class="meta__item"><dt>my time</dt><dd id="clock">--:--</dd></div>
-      <div class="meta__item"><dt>location</dt><dd id="location">earth</dd></div>
-      <div class="meta__item" id="repoItem" hidden><dt>repos</dt><dd id="repoCount">—</dd></div>
-    </dl>
-
-    <div class="rule" aria-hidden="true"></div>
-
-    <nav class="socials" id="socials" aria-label="links"></nav>
   </section>
 
-  <div class="col">
-    <section class="block" aria-labelledby="projects-title">
-      <h2 class="block__title" id="projects-title"><span class="block__num">01</span>projects</h2>
-      <div class="grid" id="projects"></div>
-    </section>
+  <section class="bento" aria-label="overview">
+    <article class="tile tile--now">
+      <h2 class="tile__label"><span class="tile__pulse" aria-hidden="true"></span>right now</h2>
+      <p class="now__idle" id="nowIdle">probably asking an ai to do something it shouldn't.</p>
+      <div class="presence" id="presence" data-status="offline" hidden>
+        <span class="dot" aria-hidden="true"></span><span class="presence__text" id="presenceText">offline</span>
+      </div>
+      <div class="activity" id="activity" hidden>
+        <img class="activity__art" id="activityArt" alt="">
+        <div class="activity__info">
+          <span class="activity__kind" id="activityKind">listening to spotify</span>
+          <span class="activity__title" id="activityTitle"></span>
+          <span class="activity__sub" id="activitySub"></span>
+          <div class="activity__bar" id="activityBar" hidden><span id="activityFill"></span></div>
+          <div class="activity__times" id="activityTimes" hidden><span id="activityElapsed">0:00</span><span id="activityTotal">0:00</span></div>
+        </div>
+      </div>
+    </article>
 
-    <section class="block" id="reposBlock" aria-labelledby="repos-title" hidden>
-      <h2 class="block__title" id="repos-title"><span class="block__num">02</span>more on github</h2>
-      <div class="grid grid--compact" id="repos"></div>
-    </section>
+    <article class="tile tile--links">
+      <h2 class="tile__label">elsewhere</h2>
+      <nav class="links" id="socials" aria-label="links"></nav>
+    </article>
 
-    <section class="block" aria-labelledby="stack-title">
-      <h2 class="block__title" id="stack-title"><span class="block__num" id="stackNum">02</span>stack</h2>
-      <ul class="chips" id="stack"></ul>
-    </section>
+    <article class="tile tile--facts">
+      <dl class="facts">
+        <div><dt>tokens wasted</dt><dd id="tokens">—</dd></div>
+        <div id="repoItem" hidden><dt>public repos</dt><dd id="repoCount">—</dd></div>
+        <div><dt>projects</dt><dd id="projectCount">—</dd></div>
+        <div><dt>since</dt><dd>2026</dd></div>
+      </dl>
+    </article>
+  </section>
 
-    <footer class="foot">
-      <span>© <span id="year">2026</span> deni</span>
-      <span class="foot__dot" aria-hidden="true">·</span>
-      <a href="https://github.com/deniba1/deniba.xyz" target="_blank" rel="noopener">source ↗</a>
-    </footer>
-  </div>
+  <section class="section" aria-labelledby="work-title">
+    <h2 class="section__title" id="work-title">selected <em>work</em></h2>
+    <ol class="work" id="projects"></ol>
+  </section>
+
+  <section class="section" id="reposBlock" aria-labelledby="repos-title" hidden>
+    <h2 class="section__title" id="repos-title">more on <em>github</em></h2>
+    <ol class="work work--small" id="repos"></ol>
+  </section>
+
+  <section class="section" aria-labelledby="stack-title">
+    <h2 class="section__title" id="stack-title">tools of <em>choice</em></h2>
+    <ul class="stack" id="stack"></ul>
+  </section>
+
+  <footer class="foot">
+    <span>© <span id="year">2026</span> deni</span>
+    <span>built with too many tokens</span>
+    <a href="https://github.com/deniba1/deniba.xyz" target="_blank" rel="noopener">source ↗</a>
+  </footer>
 </main>
 
-<div class="player glass" id="player" aria-label="music player" hidden>
+<div class="player" id="player" aria-label="music player" hidden>
   <div class="player__more" id="playerMore">
     <div class="player__inner">
       <div class="player__info">
@@ -144,8 +157,8 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="assets/config.js?v=4"></script>
-<script src="assets/app.js?v=2"></script>
+<script src="assets/config.js?v=5"></script>
+<script src="assets/app.js?v=3"></script>
 <script src="assets/player.js?v=2"></script>
 </body>
 </html>
