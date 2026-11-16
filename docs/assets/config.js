@@ -1,30 +1,51 @@
-// Site settings. This file is public: never put a secret key in it.
-window.SITE = {
-  // Supabase project (dashboard -> Project Settings -> API). Leave both empty
-  // when running server.py yourself: accounts, plans and ads are then off and
-  // every feature is unlocked.
-  supabaseUrl: "https://qytyagyhgvhlygmanqyo.supabase.co",
-  supabaseAnonKey: "sb_publishable_zkNpkjvBKQeCQ7SI_Z1HLw_TIFvRNz9",   // the anon / publishable key, not the service-role key
-  googleLogin: true,    // show "Continue with Google" (enable the provider in Supabase first)
+// Everything personal on the page lives here. This file is public.
+window.PROFILE = {
+  name: "deni",
+  handle: "deniba1",
+  bio: "professional vibe coder. i build small tools, sites and experiments.",
+  location: "earth",
+  timezone: "America/Los_Angeles",   // the clock on the card shows your time in this zone (IANA name)
 
-  // Sign-in shorthand: with this set to your domain, a name typed without an
-  // "@" in the email box signs in as <name>@<domain>. Sign-up always needs a
-  // full address.
-  usernameDomain: "deniba.xyz",
+  // Avatar: leave empty to use your Discord avatar (when discordId is set),
+  // falling back to a monogram. Or point it at an image, e.g. "images/avatar.webp".
+  avatar: "",
 
-  // Cloudflare Turnstile site key: adds a "verify you are human" check to sign-up,
-  // sign-in and password reset. Set it here AND switch on CAPTCHA protection in
-  // Supabase (Authentication -> Attack Protection) with the matching secret key.
-  // Do both or neither: Supabase rejects sign-ins when only its side is on.
-  turnstileSiteKey: "",
+  // Live Discord presence (status dot, activity, Spotify) comes from Lanyard.
+  // 1. Join https://discord.gg/lanyard with your account (it only needs you to be a member).
+  // 2. Discord -> Settings -> Advanced -> Developer Mode on, then right-click yourself -> Copy User ID.
+  // 3. Paste the number below. Empty = the presence block and Discord link stay hidden.
+  discordId: "1084337599444951100",
+  discordUsername: "_deniba",   // shown in the copy-to-clipboard tooltip, e.g. "deniba1"
 
-  // Google AdSense, shown to guests and free accounts only. Empty = no ads.
-  adsenseClient: "ca-pub-1335354496523169",
-  adSlots: { top: "", bottom: "" },   // ad unit IDs for the two placements on the checker page
+  github: "deniba1",     // repo count and the "repos" list come from the public GitHub API
+  email: "deniba1@proton.me",
 
-  // Printed in the Terms, Privacy Policy and Refund Policy.
-  operator: "Ruslan Suvorov, doing business as DENIXYZ",   // your name or your company's legal name
-  tradeName: "DENIXYZ",   // short business name, used on the Privacy Policy's contact line
-  contactEmail: "deniba1@proton.me",   // where support, privacy and refund requests go
-  governingLaw: "the State of California, USA",
+  // Extra links. Any entry with an empty url is skipped.
+  // icon: one of github, discord, email, youtube, x, twitch, tiktok, roblox, link
+  links: [
+    { label: "YouTube", icon: "youtube", url: "" },
+    { label: "X", icon: "x", url: "" },
+    { label: "Roblox", icon: "roblox", url: "" },
+  ],
+
+  projects: [
+    {
+      name: "deniba.xyz",
+      desc: "the site you're on. hand-written html, css and a bit of js.",
+      url: "https://github.com/deniba1/deniba.xyz",
+      linkText: "github.com/deniba1/deniba.xyz",
+      tags: ["html", "css", "js"],
+      status: "live",
+    },
+    {
+      name: "roblox alt checker",
+      desc: "scored roblox accounts on dozens of signals to flag likely alts. accounts, plans, guides, the lot.",
+      url: "https://github.com/deniba1/deniba.xyz/tree/archive/alt-checker",
+      linkText: "archive/alt-checker",
+      tags: ["typescript", "python", "supabase"],
+      status: "archived",
+    },
+  ],
+
+  stack: ["typescript", "javascript", "python", "lua", "html / css", "supabase", "deno", "git"],
 };
