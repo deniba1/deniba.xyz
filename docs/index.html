@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=5">
+<link rel="stylesheet" href="assets/style.css?v=6">
 </head>
 <body>
 <main class="desktop" id="desktop">
@@ -30,7 +30,6 @@
     <button class="icon" type="button" data-open="system"><span class="icon__img icon__img--system"></span><span class="icon__label">system</span></button>
     <a class="icon" id="iconGithub" target="_blank" rel="noopener"><span class="icon__img icon__img--github"></span><span class="icon__label">github ↗</span></a>
     <a class="icon" id="iconDiscord" target="_blank" rel="noopener" hidden><span class="icon__img icon__img--discord"></span><span class="icon__label">discord ↗</span></a>
-    <button class="icon" type="button" id="iconMail"><span class="icon__img icon__img--mail"></span><span class="icon__label">mail</span></button>
   </nav>
 
   <!-- about.txt -->
@@ -45,6 +44,7 @@
         <div class="about__who">
           <h1 class="about__name"><span id="name">deni</span> <span class="about__mark">✦</span></h1>
           <p class="about__handle"><span id="handle">@deniba1</span> · <span id="location">earth</span></p>
+          <p class="about__time"><span class="about__clock" id="clockAbout">--:--</span> <span>local time · la</span></p>
         </div>
       </div>
       <p class="about__bio" id="bio"></p>
@@ -188,7 +188,7 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="assets/config.js?v=5"></script>
-<script src="assets/app.js?v=4"></script>
+<script src="assets/app.js?v=5"></script>
 <script src="assets/desktop.js?v=1"></script>
 <script src="assets/player.js?v=2"></script>
 </body>
