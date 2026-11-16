@@ -3,28 +3,44 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>404 · deni</title>
+<title>404 · deniOS</title>
 <meta name="robots" content="noindex">
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/style.css?v=4">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/style.css?v=5">
 <style>
-  .lost { position: relative; z-index: 1; min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; max-width: 1120px; margin: 0 auto; padding: 28px; }
-  .lost h1 { font-family: var(--serif); font-style: italic; font-weight: 400; font-size: clamp(120px, 26vw, 320px); line-height: .8; letter-spacing: -0.04em; }
-  .lost h1 span { color: var(--a1); }
-  .lost p { font-size: clamp(1.1rem, 2.2vw, 1.45rem); color: var(--muted); margin: 26px 0 30px; }
-  .lost a { font-family: var(--mono); font-size: .8rem; color: var(--fg); border-bottom: 1px solid var(--a1); padding-bottom: 3px; align-self: flex-start; }
-  .lost a:hover { color: var(--a1); }
+  .lost { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; }
+  .lost .win { position: relative; width: min(420px, 100%); }
+  .err { display: flex; gap: 16px; align-items: flex-start; }
+  .err__icon { flex-shrink: 0; width: 40px; height: 40px; display: grid; place-items: center; font-family: var(--pixel); font-weight: 700; font-size: 26px; color: #fff; background: #b0304f; border: 2px solid var(--lo); box-shadow: var(--bevel); }
+  .err h1 { font-family: var(--pixel); font-weight: 600; font-size: 20px; margin-bottom: 6px; }
+  .err p { color: var(--muted); line-height: 1.5; }
+  .err code { font-family: var(--mono); font-size: 12px; color: var(--a1); }
+  .err__actions { display: flex; justify-content: flex-end; margin-top: 18px; }
+  .err__actions a { font-family: var(--pixel); font-size: 15px; padding: 7px 18px; background: var(--win-2); border: 1px solid var(--lo); box-shadow: var(--bevel); outline: 1px dotted var(--faint); outline-offset: -5px; }
+  .err__actions a:hover { background: #2a2140; }
+  .err__actions a:active { box-shadow: var(--bevel-in); }
 </style>
 </head>
 <body>
-<div class="bg" aria-hidden="true"><div class="bg__glow"></div></div>
+<div class="wallpaper" aria-hidden="true" style="position:fixed"><span class="wallpaper__mark">✦</span><span class="wallpaper__name">deniOS</span></div>
 <main class="lost">
-  <h1>4<span>0</span>4</h1>
-  <p>this page got lost. probably wasted a few tokens looking for it.</p>
-  <a href="/">← back home</a>
+  <section class="win is-active" aria-labelledby="t">
+    <header class="win__bar"><span class="icon__img icon__img--system"></span><span class="win__title">error</span><span class="win__btns"><a class="win__btn win__btn--close" href="/" aria-label="close"><span class="g g--close"></span></a></span></header>
+    <div class="win__body">
+      <div class="err">
+        <span class="err__icon" aria-hidden="true">!</span>
+        <div>
+          <h1 id="t">file not found (404)</h1>
+          <p>deniOS couldn't find <code id="path">this page</code>. probably wasted a few tokens looking for it.</p>
+        </div>
+      </div>
+      <div class="err__actions"><a href="/">ok</a></div>
+    </div>
+  </section>
 </main>
+<script>document.getElementById("path").textContent = location.pathname;</script>
 </body>
 </html>

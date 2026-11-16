@@ -58,7 +58,11 @@
   let fmt;
   try { fmt = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: P.timezone || undefined }); }
   catch { fmt = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }); }
-  const tick = () => { $("clock").textContent = fmt.format(new Date()).toLowerCase(); };
+  const tick = () => {
+    const t = fmt.format(new Date()).toLowerCase();
+    $("clock").textContent = t;
+    $("clockBig").textContent = t;
+  };
   tick();
   setInterval(tick, 10_000);
 
@@ -78,6 +82,13 @@
   if (P.discordId) links.push({ label: "discord", icon: "discord", url: `https://discord.com/users/${P.discordId}`, sub: P.discordUsername || "" });
   (P.links || []).forEach((l) => { if (l && l.url) links.push({ ...l, label: l.label.toLowerCase() }); });
   if (P.email) links.push({ label: "email", icon: "email", email: P.email, sub: P.email });
+
+  // desktop shortcuts
+  if (P.github) $("iconGithub").href = `https://github.com/${P.github}`;
+  else $("iconGithub").hidden = true;
+  if (P.discordId) { $("iconDiscord").href = `https://discord.com/users/${P.discordId}`; $("iconDiscord").hidden = false; }
+  if (P.email) $("iconMail").addEventListener("click", () => copy(P.email, "email"));
+  else $("iconMail").hidden = true;
 
   links.forEach((l) => {
     let n;
@@ -171,6 +182,8 @@
     const custom = (d.activities || []).find((a) => a.type === 4);
 
     $("statusDot").dataset.status = status;
+    $("statusDot").hidden = false;
+    $("trayDot").dataset.status = status;
     $("barStatusText").textContent = labels[status];
     $("barStatus").hidden = false;
 
@@ -240,14 +253,4 @@
     setInterval(load, 20_000);
   }
 
-  /* ---------- reveal on scroll ---------- */
-  const reveal = document.querySelectorAll(".hero, .tile, .section, .foot");
-  if (reduceMotion || !("IntersectionObserver" in window)) {
-    reveal.forEach((n) => n.classList.add("is-in"));
-  } else {
-    const io = new IntersectionObserver((entries) => entries.forEach((e) => {
-      if (e.isIntersecting) { e.target.classList.add("is-in"); io.unobserve(e.target); }
-    }), { rootMargin: "0px 0px -8% 0px" });
-    reveal.forEach((n, i) => { n.style.setProperty("--d", `${Math.min(i, 5) * 70}ms`); io.observe(n); });
-  }
 })();

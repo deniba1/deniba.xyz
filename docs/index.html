@@ -3,103 +3,133 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>deni</title>
+<title>deniOS</title>
 <meta name="description" content="deni: wasting tokens on useless things. projects, links and what i'm up to.">
-<meta name="theme-color" content="#0a0910">
+<meta name="theme-color" content="#140f1f">
 <link rel="canonical" href="https://deniba.xyz/">
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.svg?v=2" type="image/svg+xml">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="deni">
-<meta property="og:title" content="deni">
+<meta property="og:title" content="deniOS">
 <meta property="og:description" content="wasting tokens on useless things.">
 <meta property="og:url" content="https://deniba.xyz/">
 <meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=4">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css?v=5">
 </head>
 <body>
-<div class="bg" aria-hidden="true"><div class="bg__glow"></div></div>
+<main class="desktop" id="desktop">
+  <div class="wallpaper" aria-hidden="true"><span class="wallpaper__mark">✦</span><span class="wallpaper__name">deniOS</span></div>
 
-<header class="bar">
-  <a class="bar__mark" href="/">✦ deni<span>.xyz</span></a>
-  <div class="bar__right">
-    <span class="bar__item" id="barStatus" hidden><span class="dot" id="statusDot" data-status="offline"></span><span id="barStatusText">offline</span></span>
-    <span class="bar__item"><span class="bar__label">la</span> <span id="clock">--:--</span></span>
-  </div>
-</header>
+  <nav class="icons" id="icons" aria-label="desktop">
+    <button class="icon" type="button" data-open="about"><span class="icon__img icon__img--txt"></span><span class="icon__label">about.txt</span></button>
+    <button class="icon" type="button" data-open="projects"><span class="icon__img icon__img--folder"></span><span class="icon__label">projects</span></button>
+    <button class="icon" type="button" data-open="music"><span class="icon__img icon__img--music"></span><span class="icon__label">music</span></button>
+    <button class="icon" type="button" data-open="system"><span class="icon__img icon__img--system"></span><span class="icon__label">system</span></button>
+    <a class="icon" id="iconGithub" target="_blank" rel="noopener"><span class="icon__img icon__img--github"></span><span class="icon__label">github ↗</span></a>
+    <a class="icon" id="iconDiscord" target="_blank" rel="noopener" hidden><span class="icon__img icon__img--discord"></span><span class="icon__label">discord ↗</span></a>
+    <button class="icon" type="button" id="iconMail"><span class="icon__img icon__img--mail"></span><span class="icon__label">mail</span></button>
+  </nav>
 
-<main class="wrap">
-  <section class="hero">
-    <h1 class="hero__name"><span id="name">deni</span><span class="hero__mark" aria-hidden="true">✦</span></h1>
-    <div class="hero__side">
-      <div class="avatar" id="avatar">
-        <img id="avatarImg" alt="" hidden>
-        <span class="avatar__mono" id="avatarMono">d</span>
+  <!-- about.txt -->
+  <section class="win" data-win="about" data-title="about.txt" data-icon="txt" aria-label="about" hidden>
+    <div class="win__body about">
+      <div class="about__head">
+        <div class="avatar" id="avatar">
+          <img id="avatarImg" alt="" hidden>
+          <span class="avatar__mono" id="avatarMono">d</span>
+          <span class="avatar__dot dot" id="statusDot" data-status="offline" hidden></span>
+        </div>
+        <div class="about__who">
+          <h1 class="about__name"><span id="name">deni</span> <span class="about__mark">✦</span></h1>
+          <p class="about__handle"><span id="handle">@deniba1</span> · <span id="location">earth</span></p>
+        </div>
       </div>
-      <div>
-        <p class="hero__bio" id="bio"></p>
-        <p class="hero__handle"><span id="handle">@deniba1</span> · <span id="location">earth</span></p>
+      <p class="about__bio" id="bio"></p>
+
+      <div class="panel">
+        <div class="panel__label">right now</div>
+        <p class="now__idle" id="nowIdle">probably asking an ai to do something it shouldn't.</p>
+        <div class="presence" id="presence" data-status="offline" hidden>
+          <span class="dot" aria-hidden="true"></span><span class="presence__text" id="presenceText">offline</span>
+        </div>
+        <div class="activity" id="activity" hidden>
+          <img class="activity__art" id="activityArt" alt="">
+          <div class="activity__info">
+            <span class="activity__kind" id="activityKind">listening to spotify</span>
+            <span class="activity__title" id="activityTitle"></span>
+            <span class="activity__sub" id="activitySub"></span>
+            <div class="activity__bar" id="activityBar" hidden><span id="activityFill"></span></div>
+            <div class="activity__times" id="activityTimes" hidden><span id="activityElapsed">0:00</span><span id="activityTotal">0:00</span></div>
+          </div>
+        </div>
+      </div>
+
+      <nav class="links" id="socials" aria-label="links"></nav>
+    </div>
+  </section>
+
+  <!-- projects -->
+  <section class="win" data-win="projects" data-title="projects" data-icon="folder" aria-label="projects" hidden>
+    <div class="win__tools"><span class="win__path">~/deni/projects</span><span class="win__count"><span id="projectCount">0</span> items</span></div>
+    <div class="win__body explorer">
+      <div class="explorer__head" aria-hidden="true"><span>name</span><span>tags</span><span>status</span></div>
+      <ol class="work" id="projects"></ol>
+      <div id="reposBlock" hidden>
+        <div class="explorer__sub">more on github</div>
+        <ol class="work" id="repos"></ol>
       </div>
     </div>
   </section>
 
-  <section class="bento" aria-label="overview">
-    <article class="tile tile--now">
-      <h2 class="tile__label"><span class="tile__pulse" aria-hidden="true"></span>right now</h2>
-      <p class="now__idle" id="nowIdle">probably asking an ai to do something it shouldn't.</p>
-      <div class="presence" id="presence" data-status="offline" hidden>
-        <span class="dot" aria-hidden="true"></span><span class="presence__text" id="presenceText">offline</span>
-      </div>
-      <div class="activity" id="activity" hidden>
-        <img class="activity__art" id="activityArt" alt="">
-        <div class="activity__info">
-          <span class="activity__kind" id="activityKind">listening to spotify</span>
-          <span class="activity__title" id="activityTitle"></span>
-          <span class="activity__sub" id="activitySub"></span>
-          <div class="activity__bar" id="activityBar" hidden><span id="activityFill"></span></div>
-          <div class="activity__times" id="activityTimes" hidden><span id="activityElapsed">0:00</span><span id="activityTotal">0:00</span></div>
-        </div>
-      </div>
-    </article>
-
-    <article class="tile tile--links">
-      <h2 class="tile__label">elsewhere</h2>
-      <nav class="links" id="socials" aria-label="links"></nav>
-    </article>
-
-    <article class="tile tile--facts">
+  <!-- system -->
+  <section class="win" data-win="system" data-title="system" data-icon="system" aria-label="system" hidden>
+    <div class="win__body system">
+      <div class="system__logo"><span>✦</span>deniOS</div>
+      <p class="system__ver">version 1.0 · built with too many tokens</p>
       <dl class="facts">
+        <div><dt>user</dt><dd>deni</dd></div>
         <div><dt>tokens wasted</dt><dd id="tokens">—</dd></div>
         <div id="repoItem" hidden><dt>public repos</dt><dd id="repoCount">—</dd></div>
-        <div><dt>projects</dt><dd id="projectCount">—</dd></div>
-        <div><dt>since</dt><dd>2026</dd></div>
+        <div><dt>local time</dt><dd id="clockBig">--:--</dd></div>
       </dl>
-    </article>
+      <div class="panel__label">installed software</div>
+      <ul class="stack" id="stack"></ul>
+      <p class="system__foot">© <span id="year">2026</span> deni · <a href="https://github.com/deniba1/deniba.xyz" target="_blank" rel="noopener">source ↗</a></p>
+    </div>
   </section>
-
-  <section class="section" aria-labelledby="work-title">
-    <h2 class="section__title" id="work-title">selected <em>work</em></h2>
-    <ol class="work" id="projects"></ol>
-  </section>
-
-  <section class="section" id="reposBlock" aria-labelledby="repos-title" hidden>
-    <h2 class="section__title" id="repos-title">more on <em>github</em></h2>
-    <ol class="work work--small" id="repos"></ol>
-  </section>
-
-  <section class="section" aria-labelledby="stack-title">
-    <h2 class="section__title" id="stack-title">tools of <em>choice</em></h2>
-    <ul class="stack" id="stack"></ul>
-  </section>
-
-  <footer class="foot">
-    <span>© <span id="year">2026</span> deni</span>
-    <span>built with too many tokens</span>
-    <a href="https://github.com/deniba1/deniba.xyz" target="_blank" rel="noopener">source ↗</a>
-  </footer>
 </main>
+
+<!-- taskbar -->
+<footer class="taskbar" id="taskbar">
+  <div class="task__left">
+    <button class="task__start" id="startBtn" type="button" aria-haspopup="menu" aria-expanded="false"><span>✦</span> start</button>
+    <div class="task__wins" id="taskWins"></div>
+  </div>
+  <div class="task__tray">
+    <span class="task__status" id="barStatus" hidden><span class="dot" id="trayDot" data-status="offline"></span><span id="barStatusText">offline</span></span>
+    <span class="task__clock" id="clock">--:--</span>
+  </div>
+</footer>
+
+<div class="start" id="startMenu" role="menu" hidden>
+  <div class="start__band" aria-hidden="true">deniOS</div>
+  <div class="start__items">
+    <button type="button" role="menuitem" data-open="about"><span class="icon__img icon__img--txt"></span>about.txt</button>
+    <button type="button" role="menuitem" data-open="projects"><span class="icon__img icon__img--folder"></span>projects</button>
+    <button type="button" role="menuitem" data-open="music"><span class="icon__img icon__img--music"></span>music</button>
+    <button type="button" role="menuitem" data-open="system"><span class="icon__img icon__img--system"></span>system</button>
+    <hr>
+    <button type="button" role="menuitem" id="shutdownBtn"><span class="icon__img icon__img--power"></span>shut down…</button>
+  </div>
+</div>
+
+<div class="shutdown" id="shutdown" hidden>
+  <p>it's now safe to close this tab.</p>
+  <span>(or click anywhere to boot back up)</span>
+</div>
 
 <div class="player" id="player" aria-label="music player" hidden>
   <div class="player__more" id="playerMore">
@@ -158,7 +188,8 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="assets/config.js?v=5"></script>
-<script src="assets/app.js?v=3"></script>
+<script src="assets/app.js?v=4"></script>
+<script src="assets/desktop.js?v=1"></script>
 <script src="assets/player.js?v=2"></script>
 </body>
 </html>
