@@ -2,7 +2,7 @@
 window.PROFILE = {
   name: "deni",
   handle: "deniba1",
-  bio: "professional vibe coder. i build small tools, sites and experiments.",
+  bio: "wasting tokens on useless things",
   location: "earth",
   timezone: "America/Los_Angeles",   // the clock on the card shows your time in this zone (IANA name)
 
