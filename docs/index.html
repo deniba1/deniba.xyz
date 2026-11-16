@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=6">
+<link rel="stylesheet" href="assets/style.css?v=7">
 </head>
 <body>
 <main class="desktop" id="desktop">
@@ -49,9 +49,8 @@
       </div>
       <p class="about__bio" id="bio"></p>
 
-      <div class="panel">
+      <div class="panel" id="nowPanel" hidden>
         <div class="panel__label">right now</div>
-        <p class="now__idle" id="nowIdle">probably asking an ai to do something it shouldn't.</p>
         <div class="presence" id="presence" data-status="offline" hidden>
           <span class="dot" aria-hidden="true"></span><span class="presence__text" id="presenceText">offline</span>
         </div>
@@ -188,7 +187,7 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="assets/config.js?v=5"></script>
-<script src="assets/app.js?v=5"></script>
+<script src="assets/app.js?v=6"></script>
 <script src="assets/desktop.js?v=1"></script>
 <script src="assets/player.js?v=2"></script>
 </body>

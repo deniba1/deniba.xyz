@@ -116,8 +116,7 @@ button { font: inherit; color: inherit; }
 
 .panel { padding: 12px; background: var(--lo); box-shadow: var(--bevel-in); }
 .panel__label { font-family: var(--pixel); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--a1); margin-bottom: 8px; }
-.now__idle { color: var(--muted); font-style: italic; }
-.presence { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--muted); }
+.presence { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
 .presence__text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .activity { display: flex; gap: 12px; align-items: center; }
 .activity__art { width: 56px; height: 56px; object-fit: cover; flex-shrink: 0; background: var(--win-2); }
@@ -357,3 +356,5 @@ button { font: inherit; color: inherit; }
 }
 .about__time { display: flex; align-items: baseline; gap: 6px; margin-top: 6px; font-family: var(--mono); font-size: 11px; color: var(--faint); }
 .about__clock { font-family: var(--pixel); font-size: 16px; color: var(--a1); }
+
+.activity:not([hidden]) + .presence, .presence + .activity:not([hidden]) { margin-top: 10px; }

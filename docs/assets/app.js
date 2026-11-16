@@ -204,7 +204,7 @@
 
     clearInterval(progressTimer);
     const box = $("activity"), art = $("activityArt"), bar = $("activityBar"), times = $("activityTimes");
-    const idle = $("nowIdle");
+    $("nowPanel").hidden = false;
 
     if (d.listening_to_spotify && d.spotify) {
       const s = d.spotify;
@@ -223,12 +223,12 @@
       };
       step();
       progressTimer = setInterval(step, 1000);
-      box.hidden = false; idle.hidden = true;
+      box.hidden = false;
       return;
     }
 
     const act = (d.activities || []).find((a) => a.type !== 4 && a.name !== "Spotify");
-    if (!act) { box.hidden = true; idle.hidden = false; return; }
+    if (!act) { box.hidden = true; return; }
     const kinds = { 0: "playing", 1: "streaming", 2: "listening to", 3: "watching", 5: "competing in" };
     $("activityKind").textContent = `${kinds[act.type] || "playing"} ${act.name}`.toLowerCase();
     $("activityTitle").textContent = act.details || act.name;
@@ -240,7 +240,7 @@
     progressTimer = setInterval(sub, 30_000);
     art.src = assetUrl(act, "large_image");
     bar.hidden = times.hidden = true;
-    box.hidden = false; idle.hidden = true;
+    box.hidden = false;
   }
 
   if (P.discordId) {
