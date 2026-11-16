@@ -17,6 +17,11 @@ window.PROFILE = {
   discordId: "1084337599444951100",
   discordUsername: "_deniba",   // shown in the copy-to-clipboard tooltip, e.g. "deniba1"
 
+  // Music player: plays shuffled 30-second previews from this public playlist.
+  // docs/assets/playlist.json is refreshed by .github/workflows/playlist.yml.
+  // Empty = no player.
+  spotifyPlaylist: "5vhjVUrxrh7W950hW9vi6b",
+
   github: "deniba1",     // repo count and the "repos" list come from the public GitHub API
   email: "deniba1@proton.me",
 

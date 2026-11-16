@@ -309,7 +309,7 @@
       if (!reduceMotion) { s.y -= s.z * 0.06; if (s.y < -4) { s.y = H + 4; s.x = Math.random() * W; } }
       const x = s.x - mx * 40 * s.z, y = s.y - my * 40 * s.z;
       const a = (0.25 + 0.75 * s.z) * (0.65 + 0.35 * Math.sin(time * s.ts + s.tw));
-      ctx.fillStyle = s.tint ? `rgba(196,245,106,${a})` : `rgba(235,240,232,${a})`;
+      ctx.fillStyle = s.tint ? `rgba(185,140,255,${a})` : `rgba(238,234,245,${a})`;
       const r = s.z * 1.35;
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
     }
@@ -320,8 +320,8 @@
       if (shooting) {
         const s = shooting;
         const g = ctx.createLinearGradient(s.x, s.y, s.x - s.vx * 14, s.y - s.vy * 14);
-        g.addColorStop(0, `rgba(230,255,210,${s.life})`);
-        g.addColorStop(1, "rgba(230,255,210,0)");
+        g.addColorStop(0, `rgba(230,215,255,${s.life})`);
+        g.addColorStop(1, "rgba(230,215,255,0)");
         ctx.strokeStyle = g; ctx.lineWidth = 1.4;
         ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - s.vx * 14, s.y - s.vy * 14); ctx.stroke();
         s.x += s.vx; s.y += s.vy; s.life -= 0.012;
